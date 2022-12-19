@@ -6,7 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Program.fs" />
+    <Compile Include="AST/Types.fs"/>
+    <Compile Include="AST/Requirements/Types.fs"/>
+    <Compile Include="AST/Requirements/Checks.fs"/>
+    <Compile Include="AST/Requirements/Merge.fs"/>
+    <Compile Include="AST/Defaults.fs"/>
+    <Compile Include="AST/EmptyTypes.fs"/>
+    <Compile Include="AST/Merge.fs"/>
+    <Compile Include="AST/Writer/Format.fs"/>
+    <Compile Include="AST/Writer/Main.fs"/>
+    <Compile Include="Parsing/SyntaxDefinitions.fs"/>
+    <Compile Include="Parsing/Main.fs"/>
+    <Compile Include="Program.fs"/>
   </ItemGroup>
 
 </Project>
