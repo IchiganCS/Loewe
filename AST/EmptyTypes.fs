@@ -28,10 +28,17 @@ let emptyCodeSignature = {
     Parameters = List.empty
     Return = emptyQualifiedType
 }
+let emptyField = {
+    Symbol = emptyClassMemberSymbol
+    Type = emptyQualifiedType
+    Name = emptyName
+    AccessModifier = Public
+}
 let emptyMethod : Method = {
     Symbol = emptyClassMemberSymbol
     Signature = emptyCodeSignature
     Code = List.empty
+    AccessModifier = Public
 }
 let emptyFunction = {
     Symbol = emptyTopSymbol

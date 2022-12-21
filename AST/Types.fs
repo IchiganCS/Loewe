@@ -54,11 +54,14 @@ and Method = {
     Symbol: ClassMemberSymbol
     Signature: CodeSignature
     Code: Statement list
+    AccessModifier: AccessModifier
 }
 
 and Field = {
     Symbol: ClassMemberSymbol
     Type: QualifiedType
+    Name: string
+    AccessModifier: AccessModifier
 }
 
 and Function = {
@@ -69,23 +72,25 @@ and Function = {
 
 
 and Expression =
-    | Call of Expression * Method * Expression list
+    | FunctionCall of TopSymbol * Expression list
     | Variable of Variable
+    | Constant of string
 
 and Statement =
     | AssignValue of Expression * Expression
-    | AssignVariable of Variable * Expression
+    | InitializeVariable of Variable * Expression
     | Expression of Expression
-    | Branch of Expression list * Statement list list
+    | Branches of Expression list * Statement list list
     | While of Expression * Statement list
     | For of Expression * Expression * Expression * Statement list
+    | Return of Expression option
 
 
 
 and Class = { 
     Symbol: TopSymbol
-    InstanceFields: (AccessModifier * Variable) Set
-    InstanceMethods: (AccessModifier * Method) Set
-    ClassFields: (AccessModifier * Variable) Set
-    ClassMethods: (AccessModifier * Method) Set
+    InstanceFields: Field Set
+    InstanceMethods: Method Set
+    ClassFields: Field Set
+    ClassMethods: Method Set
 }
