@@ -1,4 +1,4 @@
-module Loewe.Parsing.Types
+module Loewe.Tokenizing.Types
 
 type Position = {
     Line: int
@@ -40,7 +40,12 @@ type Operator =
     | Divide
 
 type Literal =
-    | Int of int
+    | Int of int32
+    | UnsignedInt of uint32
+    | Long of int64
+    | UnsignedLong of uint64
+    | Float of float
+    | Double of double
     | String of string
     | Bool of bool
 

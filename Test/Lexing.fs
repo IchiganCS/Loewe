@@ -1,31 +1,37 @@
 ﻿module Loewe.Test.Lexing
 
-open Loewe.Parsing.Main
+open Loewe.Tokenizing.Main
 
-open Xunit
+open Microsoft.VisualStudio.TestTools.UnitTesting
+
 
 let simpleProgram = "int main() { string x = \"test\"; }"
 let commentProgram = "
 int main() // test
-{ /* another test * fsd / confuseing marks/*// stop
-    int x = 4 // stop  notice spaces here ->    
-    ;
-    /**/ int works = /*3*/ 3//3
-}/*
-*/"
+{ //// stop
+    // this should work 
+    // emulated multiline comment
+    int x = \"test\" //  notice spaces here ->    
+;
+    int works = \"3\";//3//s
+}"
+let tokenCountCommentProgram = 16
 
-[<Fact>]
-let ``Always true`` () =
-    Assert.True true
+[<TestClass>]
+type LexingTester () =
 
-[<Fact>]
-let ``Most simple test program - lexing`` () =
-    match parse simpleProgram with
-    | Success _ -> ()
-    | Failure _ -> Assert.Fail "Didn't successfully tokenize simple program"
 
-[<Fact>]
-let ``Comment program - lexing`` () =
-    match parse simpleProgram with
-    | Success _ -> ()
-    | Failure _ -> Assert.Fail "Didn't successfully tokenize comment program"
+    [<TestMethod>]
+    member this.``Most simple test program - lexing`` () =
+        match tokenize simpleProgram with
+        | Success _ -> ()
+        | Failure _ -> Assert.Fail "Didn't successfully tokenize simple program"
+
+    [<TestMethod>]
+    member this.``Comment program - lexing`` () =
+        match tokenize commentProgram with
+        | Success tokens -> 
+            if tokens.Length <> tokenCountCommentProgram then
+                Assert.Fail "Parsing successfully failed - token count does not match"
+        | Failure _ -> 
+            Assert.Fail "Didn't successfully tokenize comment program"

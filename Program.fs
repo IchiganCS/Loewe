@@ -1,11 +1,15 @@
-﻿open Loewe.Parsing.Main
+﻿open Loewe.Tokenizing.Main
 open Loewe.AST.Types
 open Loewe.AST.Writer.Main
 open System.IO
+open Loewe.Tokenizing.Helpers
 
 let content = System.IO.File.ReadAllText "test.loewe"
 
-let res = parse "int main() \n{ string x = \"test\"; }"
+
+match tokenizeNumberLiteral "0123.125" with
+| Some _ -> ()
+| None -> ()
 
 
 let main : Function = { 

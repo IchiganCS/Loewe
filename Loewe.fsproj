@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Misc/String.fs"/>
     <Compile Include="Parsing/Types.fs"/>
     <Compile Include="Parsing/Helpers.fs"/>
     <Compile Include="Parsing/Main.fs"/>
