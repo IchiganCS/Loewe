@@ -1,7 +1,8 @@
-module Loewe.Tokenizing.Main
+module Loewe.Parsing.Tokenizing.Main
 
-open Loewe.Tokenizing.Types
-open Loewe.Tokenizing.Helpers
+open Loewe.Parsing.Tokenizing.Types
+open Loewe.Parsing.Tokenizing.Helpers
+open Loewe.Parsing.CommonTypes
 
 /// Have a method for each token: If a given string starts with this kind of token return Some token
 /// if the method can not find a token at the beginning of the string, return None
@@ -12,38 +13,38 @@ type TokenizingResult =
     | Failure of Position
 
 
-/// Starts at the beginning of the given string and tries to match any kind of token
-/// If a match could be made, returns the parsed token and the substring responsible for the match
-/// None if no match could be made
-let singleTokenize (str: string) : (Token option * string) option =
-    match tokenizeComment str with
-    | Some str -> Some (None, str)
+/// Starts at the beginning of the given string and tries to match any kind of token.
+/// If a match could be made, returns the parsed token and the number of chars responsible for the match.
+/// None if no match could be made.
+let tryTokenize (str: string ref) : (Token option * int) option =
+    match tryTokenizeComment str with
+    | Some len -> Some (None, len)
     | None ->
 
-    match tokenizeKeyword str with
-    | Some (tok, str) -> Some (Some tok, str)
+    match tryTokenizeKeyword str with
+    | Some (tok, len) -> Some (Some tok, len)
     | None ->
 
     match tokenizeLiteral str with
-    | Some (tok, str) -> Some (Some tok, str)
+    | Some (tok, len) -> Some (Some tok, len)
     | None ->
 
-    match tokenizeSeparator str with
-    | Some (tok, str) -> Some (Some tok, str)
+    match tryTokenizeSeparator str with
+    | Some (tok, len) -> Some (Some tok, len)
     | None ->
 
-    match tokenizeOperator str with
-    | Some (tok, str) -> Some (Some tok, str)
+    match tryTokenizeOperator str with
+    | Some (tok, len) -> Some (Some tok, len)
     | None ->
 
-    match tokenizeName str with
-    | Some (tok, str) -> Some (Some tok, str)
+    match tryTokenizeName str with
+    | Some (tok, len) -> Some (Some tok, len)
     | None -> 
 
     None
 
 let tokenize (str: string) : TokenizingResult =
-    let mutable trimmed = str
+    let trimmed = ref str
 
     let mutable tokenList = []
 
@@ -51,9 +52,10 @@ let tokenize (str: string) : TokenizingResult =
     let mutable col = 1
     let mutable line = 1
 
+    
     let trimStart () =
-        let newTrimmed = trimmed.TrimStart ()
-        let cutElements = trimmed.Substring (0, (trimmed.Length - newTrimmed.Length))
+        let newTrimmed = trimmed.Value.TrimStart ()
+        let cutElements = trimmed.Value.Substring (0, (trimmed.Value.Length - newTrimmed.Length))
         let mutable newLineCount = 0
         col <- col + cutElements.Length
         for ch in cutElements do
@@ -62,7 +64,7 @@ let tokenize (str: string) : TokenizingResult =
         if newLineCount > 0 then
             line <- line + newLineCount
             col <- 1
-        trimmed <- newTrimmed
+        trimmed.Value <- newTrimmed
 
     trimStart ()
 
@@ -76,20 +78,21 @@ let tokenize (str: string) : TokenizingResult =
             Token = tok
             Position = position
         }
-        tokenList <- List.append tokenList [positionedToken]
+        tokenList <- tokenList @ [positionedToken]
 
-    while trimmed.Length <> 0 && not hasError do
-        match singleTokenize trimmed with
-        | Some (tok, str) -> 
+    while trimmed.Value.Length <> 0 && not hasError do
+        match tryTokenize trimmed with
+        | Some (tok, len) -> 
             match tok with
             | None -> 
                 ()
             | Some tokVal ->
-                addTokenAtCurrentPosition tokVal str.Length
+                addTokenAtCurrentPosition tokVal len
+                
 
             // advance position
-            trimmed <- trimmed.Substring str.Length
-            col <- col + str.Length
+            trimmed.Value <- trimmed.Value.Substring len
+            col <- col + len
             trimStart ()
 
         | None -> hasError <- true

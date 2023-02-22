@@ -1,6 +1,6 @@
 ﻿module Loewe.Test.Lexing
 
-open Loewe.Tokenizing.Main
+open Loewe.Parsing.Tokenizing.Main
 
 open Microsoft.VisualStudio.TestTools.UnitTesting
 

@@ -7,18 +7,22 @@
 
   <ItemGroup>
     <Compile Include="Misc/String.fs"/>
-    <Compile Include="Parsing/Types.fs"/>
-    <Compile Include="Parsing/Helpers.fs"/>
-    <Compile Include="Parsing/Main.fs"/>
-    <Compile Include="AST/Types.fs"/>
-    <Compile Include="AST/Requirements/Types.fs"/>
-    <Compile Include="AST/Requirements/Checks.fs"/>
-    <Compile Include="AST/Requirements/Merge.fs"/>
-    <Compile Include="AST/Defaults.fs"/>
-    <Compile Include="AST/EmptyTypes.fs"/>
-    <Compile Include="AST/Merge.fs"/>
-    <Compile Include="AST/Writer/Format.fs"/>
-    <Compile Include="AST/Writer/Main.fs"/>
+    <Compile Include="Parsing/CommonTypes.fs"/>
+    <Compile Include="Parsing/Tokenizing/Types.fs"/>
+    <Compile Include="Parsing/Tokenizing/Helpers.fs"/>
+    <Compile Include="Parsing/Tokenizing/Main.fs"/>
+    <Compile Include="Parsing/Tree/ResolvedTypes.fs"/>
+    <Compile Include="Parsing/Tree/UnresolvedTypes.fs"/>
+    <Compile Include="Parsing/Tree/Syntax.fs"/>
+    <!-- <Compile Include="Parsing/AST/Types.fs"/>
+    <Compile Include="Parsing/AST/Requirements/Types.fs"/>
+    <Compile Include="Parsing/AST/Requirements/Checks.fs"/>
+    <Compile Include="Parsing/AST/Requirements/Merge.fs"/>
+    <Compile Include="Parsing/AST/Defaults.fs"/>
+    <Compile Include="Parsing/AST/EmptyTypes.fs"/>
+    <Compile Include="Parsing/AST/Merge.fs"/>
+    <Compile Include="Parsing/AST/Writer/Format.fs"/>
+    <Compile Include="Parsing/AST/Writer/Main.fs"/> -->
     <Compile Include="Program.fs"/>
   </ItemGroup>
 

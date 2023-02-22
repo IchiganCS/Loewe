@@ -1,24 +1,16 @@
 module Loewe.AST.Types
+open Loewe.Parsing.Tokenizing.Types
+open Loewe.Parsing.CommonTypes
 
-type TypeQualifier =
-    | Owner
-    | Ref
-    | ConstRef
-    | Ptr
-    | ConstPtr
 
-and AccessModifier =
-    | Private
-    | Public
-
-and QualifiedType = { 
-    Type: Type
-    Qualifier: TypeQualifier 
-}
-
-and Primitive = {
+type Primitive = {
     Name: string
     TranslatedName: string
+}
+
+type QualifiedType = { 
+    Type: Type
+    Qualifier: TypeQualifier 
 }
 
 and TopSymbol = {
@@ -39,10 +31,6 @@ and Variable = {
     Name : string
     Type: QualifiedType
 }
-
-and Namespace =
-    | Root
-    | Child of Namespace * string
     
 and CodeSignature = {
     Parameters: Variable list
@@ -72,17 +60,18 @@ and Function = {
 
 
 and Expression =
-    | FunctionCall of TopSymbol * Expression list
+    | FunctionCall of Function * Expression list
+    | MethodCall of Expression * Method * Expression list
     | Variable of Variable
-    | Constant of string
+    | Literal of Literal
 
 and Statement =
-    | AssignValue of Expression * Expression
+    | AssignValue of Variable * Expression
     | InitializeVariable of Variable * Expression
     | Expression of Expression
     | Branches of Expression list * Statement list list
     | While of Expression * Statement list
-    | For of Expression * Expression * Expression * Statement list
+    | For of Statement * Expression * Statement * Statement list
     | Return of Expression option
 
 
@@ -93,4 +82,27 @@ and Class = {
     InstanceMethods: Method Set
     ClassFields: Field Set
     ClassMethods: Method Set
+}
+
+
+
+
+
+type UnresolvedClassReference = {
+    Name: string
+    Namespace: Namespace
+    Methods: string list
+}
+
+type UnresolvedReference =
+    | UnknownClass of UnresolvedClassReference
+
+type ResolvedReference =
+    | Function of Function
+    | Type of Type
+    | Method of Method
+
+type IncompleteReference = {
+    Required: UnresolvedReference list
+    Supplier: (ResolvedReference -> int -> UnresolvedReference list * ResolvedReference option)
 }

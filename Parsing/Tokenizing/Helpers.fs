@@ -1,34 +1,21 @@
-module Loewe.Tokenizing.Helpers
+module Loewe.Parsing.Tokenizing.Helpers
 open System.Text.RegularExpressions
-open Loewe.Tokenizing.Types
+open Loewe.Parsing.Tokenizing.Types
 
-/// Return rest of string
-let tokenizeComment (str: string) : string option =
-    if str.StartsWith "//" then
+
+let tryTokenizeComment (strRef: string ref) : int option =
+    let str = strRef.Value
+    if not (str.StartsWith "//") then
+        None
+    else
         // check for ending of line
         let nextLineBreak = str.IndexOf '\n'
         if nextLineBreak = -1 then 
             // we are in the last line and it is commented out - no recursion necessary
-            Some str
+            Some str.Length
         else
-            Some (str.Substring (0, nextLineBreak + 1))
+            Some (nextLineBreak + 1)
 
-    else 
-        None
-
-
-let keywords = 
-    Map [
-        (Public, "public")
-        (Private, "private")
-        (Const, "const")
-        (While, "while")
-        (For, "for")
-        (Return, "return")
-        (If, "if")
-        (ElseIf, "elif")
-        (Else, "else")
-    ]
 
 let keywordKeys =
     keywords.Keys
@@ -36,35 +23,11 @@ let keywordKeys =
 
 
 
-let separators = 
-    Map [
-        (BracketOpen, "(")
-        (BracketClose, ")")
-        (CurvedBracketOpen, "{")
-        (CurvedBracketClose, "}")
-        (SharpBracketOpen, "[")
-        (SharpBracketClose, "]")
-        (Semicolon, ";")
-        (Comma, ",")
-    ]
 
 let separatorKeys =
     separators.Keys
     |> Set.ofSeq
 
-let operators =
-    Map [
-        (Assign, "=")
-        (Equal, "==")
-        (EqualNot, "!=")
-        (Not, "!")
-        (And, "&&")
-        (Or, "||")
-        (Plus, "+")
-        (Minus, "-")
-        (Multiply, "*")
-        (Divide, "/")
-    ]
 
 let operatorKeys =
     operators.Keys
@@ -73,13 +36,14 @@ let operatorKeys =
 let nameRegex = Regex ("^[a-z|A-Z|_][a-z|A-Z|\d|_]*", RegexOptions.Compiled ||| RegexOptions.NonBacktracking)
 
 
-let tokenizeSeparator (str: string) : (Token * string) option =
+let tryTokenizeSeparator (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     let hits =
         separatorKeys
         |> Set.filter (fun key -> str.StartsWith (separators[key]))
     
     if hits.Count = 1 then
-        Some (Separator hits.MaximumElement, separators[hits.MaximumElement])
+        Some (Separator hits.MaximumElement, separators[hits.MaximumElement].Length)
     else
         None
 
@@ -87,9 +51,10 @@ let isSeperatorOrSpace (char: char) : bool =
     char = ' ' 
     || char = '\n' 
     || char = '\r' 
-    || (tokenizeSeparator (char.ToString ()) <> None) 
+    || (tryTokenizeSeparator (ref (char.ToString ())) <> None) 
 
-let tokenizeOperator (str: string) : (Token * string) option =
+let tryTokenizeOperator (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     let hits =
         operatorKeys
         |> Set.filter (fun key -> str.StartsWith (operators[key]))
@@ -101,18 +66,20 @@ let tokenizeOperator (str: string) : (Token * string) option =
             |> Set.toList
             |> List.maxBy (fun key -> operators[key].Length)
 
-        Some (Operator greatestHit, operators[greatestHit])
+        Some (Operator greatestHit, operators[greatestHit].Length)
     else
         None
 
-let tokenizeName str : (Token * string) option =
+let tryTokenizeName (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     let mat = nameRegex.Match str
     if mat.Success then
-        Some (Name mat.Value, mat.Value)
+        Some (Identifier mat.Value, mat.ValueSpan.Length)
     else
         None
     
-let tokenizeKeyword (str: string) : (Token * string) option =
+let tryTokenizeKeyword (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     let hits =
         keywordKeys
         |> Set.filter (fun key -> str.StartsWith (keywords[key]) || str.StartsWith (keywords[key]))
@@ -120,14 +87,15 @@ let tokenizeKeyword (str: string) : (Token * string) option =
     if hits.Count = 1 then
         let hitWord = keywords[hits.MaximumElement]
         if str.Length = hitWord.Length || (isSeperatorOrSpace str[hitWord.Length]) then
-            Some (Keyword hits.MaximumElement, keywords[hits.MaximumElement])
+            Some (Keyword hits.MaximumElement, keywords[hits.MaximumElement].Length)
         else
             None
     else
         None
 
 
-let tokenizeStringLiteral (str: string) : (Token * string) option =
+let tokenizeStringLiteral (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     // this seems to be a little hard to do with Regex
     if str.Length < 2 || str[0] <> '\"' then
         None
@@ -140,13 +108,14 @@ let tokenizeStringLiteral (str: string) : (Token * string) option =
     let mutable hasBackslash = false
     let mutable reachedEnd = false
     while str.Length > i && not reachedEnd do
-        if str[i] = '\"' then
+        if str[i] = '\"' && not hasBackslash then
             reachedEnd <- true
         elif hasBackslash then
             match str[i] with
             | 'n' -> add '\n'
             | 't' -> add '\t'
             | '\\' -> add '\\'
+            | '\"' -> add '\"'
             | _ -> ()
             hasBackslash <- false
         elif str[i] = '\\' then
@@ -160,22 +129,27 @@ let tokenizeStringLiteral (str: string) : (Token * string) option =
         // we left the loop because there are no more characters, not because we reached the end
         None
     else
-        Some (Literal (Literal.String res), str.Substring (0, i))
+        Some (Literal (Literal.String res), i)
   
-let tokenizeBoolLiteral (str: string) : (Token * string) option =
+let tokenizeBoolLiteral (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     if str.StartsWith "true " || str.StartsWith "true\n" then
-        Some (Literal (Bool true), "true")
+        Some (Literal (Bool true), "true".Length)
     elif str.StartsWith "false " || str.StartsWith "false\n" then
-        Some (Literal (Bool false), "false")
+        Some (Literal (Bool false), "false".Length)
     else
         None
 
 
 let numbers = "0123456789ABCDEF"
 
-let numberRegex = Regex ("^(?<sign>\+|-)?(?<sig>0x|0o|0b)?(?<numbersBeforeDot>[0123456789]*)(?<dot>\.?)(?<numbersAfterDot>[0123456789ABCDEF]+)(?<end>ul|u|l|f|d)?", RegexOptions.Compiled ||| RegexOptions.NonBacktracking)
+let numberRegex = 
+    Regex 
+        ("^(?<sign>\+|-)?(?<sig>0x|0o|0b)?(?<numbersBeforeDot>[0123456789ABCDEF]*)(?<dot>\.?)(?<numbersAfterDot>[0123456789ABCDEF]+)(?<end>ul|u|l|f|d)?", 
+        RegexOptions.Compiled ||| RegexOptions.NonBacktracking)
 
-let tokenizeNumberLiteral (str: string) : (Token * string) option =
+let tokenizeNumberLiteral (strRef: string ref) : (Token * int) option =
+    let str = strRef.Value
     let mat = numberRegex.Match str
     
     
@@ -216,43 +190,40 @@ let tokenizeNumberLiteral (str: string) : (Token * string) option =
 
     // check valid inputs (before dot is only filled if float or double and it only matches to decimal digits)
     let validNumbers = numbers.Substring (0, numberBaseVal)
-    if not (String.forall (fun ch -> validNumbers.Contains ch) afterDot) then
+    let concatString = beforeDot + afterDot
+    if not (String.forall (fun ch -> validNumbers.Contains ch) concatString) then
         None
     else
 
     let dottedString = beforeDot + "." + afterDot
     if numberType = "f" || (numberType = "" && dot <> "")then
-        Some (Literal (Float ((float signMul) * float (System.Convert.ToDouble dottedString))), mat.Value)
+        Some (Literal (Float ((float signMul) * float (System.Convert.ToDouble dottedString))), mat.ValueSpan.Length)
     elif numberType = "d" then
-        Some (Literal (Double ((double signMul) * System.Convert.ToDouble dottedString)), mat.Value)
+        Some (Literal (Double ((double signMul) * System.Convert.ToDouble dottedString)), mat.ValueSpan.Length)
     elif numberType = "" then
-        Some (Literal (Int (signMul * System.Convert.ToInt32 afterDot)), mat.Value)
+        Some (Literal (Int (signMul * System.Convert.ToInt32 (concatString, numberBaseVal))), mat.ValueSpan.Length)
     elif numberType = "u" then
-        Some (Literal (UnsignedInt (System.Convert.ToUInt32 afterDot)), mat.Value)
+        Some (Literal (UnsignedInt (System.Convert.ToUInt32 (concatString, numberBaseVal))), mat.ValueSpan.Length)
     elif numberType = "ul" then
-        Some (Literal (UnsignedLong (System.Convert.ToUInt64 afterDot)), mat.Value)
+        Some (Literal (UnsignedLong (System.Convert.ToUInt64 (concatString, numberBaseVal))), mat.ValueSpan.Length)
     elif numberType = "l" then
-        Some (Literal (Long ((int64 signMul) * System.Convert.ToInt64 afterDot)), mat.Value)
+        Some (Literal (Long ((int64 signMul) * System.Convert.ToInt64 (concatString, numberBaseVal))), mat.ValueSpan.Length)
     else
         // shouldn't be reached
         None
 
-    
 
-
-
-    
         
-let tokenizeLiteral str : (Token * string) option =
-    match tokenizeStringLiteral str with
+let tokenizeLiteral (strRef: string ref) : (Token * int) option =
+    match tokenizeStringLiteral strRef with
     | Some res -> Some res
     | None ->
 
-    match tokenizeBoolLiteral str with
+    match tokenizeBoolLiteral strRef with
     | Some res -> Some res
     | None ->
 
-    match tokenizeNumberLiteral str with
+    match tokenizeNumberLiteral strRef with
     | Some res -> Some res
     | None ->
     
