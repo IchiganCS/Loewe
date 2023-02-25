@@ -1,5 +1,5 @@
 module Loewe.Parsing.Tokenizing.Types
-open Loewe.Parsing.CommonTypes
+open Loewe.Parsing.Types
 
 
 
@@ -15,6 +15,7 @@ type Keyword =
     | If
     | Else
     | ElseIf
+    | Class
 
 let keywords = 
     Map [
@@ -29,6 +30,7 @@ let keywords =
         Else, "else"
         Open, "open"
         Namespace, "namespace"
+        Class, "class"
     ]
 
 
@@ -47,6 +49,7 @@ type Separator =
     | Semicolon
     | Comma
     | Dot
+    | EqualSign
 
 
 let separators = 
@@ -60,6 +63,7 @@ let separators =
         Semicolon, ";"
         Comma, ","
         Dot, "."
+        EqualSign, "="
     ]
 
 
@@ -73,11 +77,13 @@ type Operator =
     | Or
     | Plus
     | Minus
-    | Multiply
+    | Star
     | Divide
+    | Percent
 
 let operators =
     Map [
+        Percent, "%"
         Equal, "=="
         EqualNot, "!="
         Not, "!"
@@ -85,7 +91,7 @@ let operators =
         Or, "||"
         Plus, "+"
         Minus, "-"
-        Multiply, "*"
+        Star, "*"
         Divide, "/"
     ]
 

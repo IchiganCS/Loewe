@@ -2,7 +2,7 @@ module Loewe.Parsing.Tokenizing.Main
 
 open Loewe.Parsing.Tokenizing.Types
 open Loewe.Parsing.Tokenizing.Helpers
-open Loewe.Parsing.CommonTypes
+open Loewe.Parsing.Types
 
 /// Have a method for each token: If a given string starts with this kind of token return Some token
 /// if the method can not find a token at the beginning of the string, return None

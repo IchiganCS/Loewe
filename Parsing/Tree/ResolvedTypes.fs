@@ -1,5 +1,5 @@
 module Loewe.Parsing.Tree.ResolvedTypes
-open Loewe.Parsing.CommonTypes
+open Loewe.Parsing.Types
 
 
 type AttributeDefinition = {
