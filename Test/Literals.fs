@@ -2,87 +2,39 @@ module Loewe.Test.Literals
 
 open Loewe.Parsing.Tokenizing.Helpers
 open Loewe.Parsing.Tokenizing.Types
-open Microsoft.VisualStudio.TestTools.UnitTesting
+open Xunit
 
-[<TestClass>]
-type LiteralsTester () =
-    [<TestMethod>]
-    member this.``Simple string literal`` () =
-        match tokenizeStringLiteral (ref "\"sdg\"") with
-        | Some v ->
-            match fst v with
-            | Literal l ->
-                match l with
-                | String str -> 
-                    if str <> "sdg" then
-                        Assert.Fail "Didn't match simple string literal"
-                | _ -> Assert.Fail "Didn't match simple string literal"
-            | _ -> Assert.Fail "Didn't match simple string literal"
-        | None -> Assert.Fail "Didn't match simple string literal"
 
-    [<TestMethod>]
-    member this.``Hard string literal`` () =
-        match tokenizeStringLiteral (ref "\"\\ns\\td\\\"g\\\\\"") with
-        | Some v ->
-            match fst v with
-            | Literal l ->
-                match l with
-                | String str -> 
-                    if str <> "\ns\td\"g\\" then
-                        Assert.Fail "Didn't match hard string literal"
-                | _ -> Assert.Fail "Didn't match hard string literal"
-            | _ -> Assert.Fail "Didn't match hard string literal"
-        | None -> Assert.Fail "Didn't match hard string literal"
 
-    [<TestMethod>]
-    member this.``Simple int literal`` () =
-        match tokenizeNumberLiteral (ref "123") with
-        | Some _ -> ()
-        | None -> Assert.Fail "Didn't match simple literal"
+[<Fact>]
+let ``Simple string literal`` () =
+    Assert.Equal (Some ((Literal (String "sdg")), 5), (tokenizeStringLiteral (ref "\"sdg\"")))
 
-    [<TestMethod>]
-    member this.``Hard int literal`` () =
-        match tokenizeNumberLiteral (ref "-0x123") with
-        | Some v ->
-            match fst v with
-            | Literal l ->
-                match l with
-                | Int i -> 
-                    if i <> -0x123 then
-                        Assert.Fail "Didn't match hexadecimal literal"
-                | _ -> Assert.Fail "Didn't match hexadecimal literal"
-            | _ -> Assert.Fail "Didn't match hexadecimal literal"
-        | None -> Assert.Fail "Didn't match hexadecimal literal"
+[<Fact>]
+let ``Hard string literal`` () =
+    Assert.Equal ((Some ((Literal (String "\ns\td\"g\\")), 13)), (tokenizeStringLiteral (ref "\"\\ns\\td\\\"g\\\\\"")))
 
-    [<TestMethod>]
-    member this.``Simple double literal`` () =
-        match tokenizeNumberLiteral (ref "0123.125") with
-        | Some _ -> ()
-        | None -> Assert.Fail "Didn't match double literal"
+[<Fact>]
+let ``Simple int literal`` () =
+    Assert.Equal ((Some ((Literal (Int 123)), 3)), (tokenizeNumberLiteral (ref "123")))
 
-    [<TestMethod>]
-    member this.``Hard float literal`` () =
-        match tokenizeNumberLiteral (ref "-.125f") with
-        | Some v ->
-            match fst v with
-            | Literal l ->
-                match l with
-                | Float f -> 
-                    if f <> float (-0.125f) then
-                        Assert.Fail "Didn't match hard float literal"
-                | _ -> Assert.Fail "Didn't match hard float literal"
-            | _ -> Assert.Fail "Didn't match hard float literal"
-        | None -> Assert.Fail "Didn't match hard float literal"
+[<Fact>]
+let ``Hard int literal`` () =
+    Assert.Equal ((Some ((Literal (Int -0x123)), 6)), (tokenizeNumberLiteral (ref "-0x123")))
 
-    [<TestMethod>]
-    member this.``Faulty float literal`` () =
-        match tokenizeNumberLiteral (ref "-0x125125f") with
-        | Some _ -> Assert.Fail "Matched faulty float literal"
-        | None -> ()
+[<Fact>]
+let ``Simple double literal`` () =
+    Assert.Equal ((Some ((Literal (Float 0123.125)), 8)), (tokenizeNumberLiteral (ref "0123.125")))
 
-        
-    [<TestMethod>]
-    member this.``Faulty int literal`` () =
-        match tokenizeNumberLiteral (ref "0x125125s") with
-        | Some _ -> Assert.Fail "Matched faulty int literal"
-        | None -> ()
+[<Fact>]
+let ``Hard float literal`` () =
+    Assert.Equal ((Some ((Literal (Float (float (-0.125f)))), 6)), (tokenizeNumberLiteral (ref "-.125f")))
+
+[<Fact>]
+let ``Faulty float literal`` () =
+    Assert.Equal (None, (tokenizeNumberLiteral (ref "-0x125125f")))
+
+    
+[<Fact>]
+let ``Faulty int literal`` () =
+    Assert.Equal (None, (tokenizeNumberLiteral (ref "0x125125s")))

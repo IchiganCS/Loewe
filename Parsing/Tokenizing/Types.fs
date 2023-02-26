@@ -50,6 +50,7 @@ type Separator =
     | Comma
     | Dot
     | EqualSign
+    | DoubleDot
 
 
 let separators = 
@@ -64,6 +65,7 @@ let separators =
         Comma, ","
         Dot, "."
         EqualSign, "="
+        DoubleDot, ":"
     ]
 
 

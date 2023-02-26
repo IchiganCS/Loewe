@@ -2,7 +2,7 @@
 
 open Loewe.Parsing.Tokenizing.Main
 
-open Microsoft.VisualStudio.TestTools.UnitTesting
+open Xunit
 
 
 let simpleProgram = "int main() { string x = \"test\"; }"
@@ -17,21 +17,18 @@ int main() // test
 }"
 let tokenCountCommentProgram = 16
 
-[<TestClass>]
-type LexingTester () =
+[<Fact>]
+let ``Most simple test program - lexing`` () =
+    Assert.True
+        (match tokenize simpleProgram with
+        | Success _ -> true
+        | Failure _ -> false)
 
-
-    [<TestMethod>]
-    member this.``Most simple test program - lexing`` () =
-        match tokenize simpleProgram with
-        | Success _ -> ()
-        | Failure _ -> Assert.Fail "Didn't successfully tokenize simple program"
-
-    [<TestMethod>]
-    member this.``Comment program - lexing`` () =
-        match tokenize commentProgram with
-        | Success tokens -> 
-            if tokens.Length <> tokenCountCommentProgram then
-                Assert.Fail "Parsing successfully failed - token count does not match"
-        | Failure _ -> 
-            Assert.Fail "Didn't successfully tokenize comment program"
+[<Fact>]
+let ``Comment program - lexing`` () =
+    match tokenize commentProgram with
+    | Success tokens -> 
+        if tokens.Length <> tokenCountCommentProgram then
+            Assert.True true
+    | Failure _ -> 
+        Assert.True false

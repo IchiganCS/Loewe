@@ -29,7 +29,7 @@ type BinaryOperation =
     | Equal
     | NotEqual
 
-/// returns the operator with the highest precedence
+/// returns the operator with the highest precedence - if equal, binOp1 is returned
 let checkOperatorPrecedence binOp1 binOp2 =
     match binOp1 with
     | Addition | Subtraction -> 

@@ -8,6 +8,8 @@
   <ItemGroup>
     <Compile Include="Literals.fs" />
     <Compile Include="Lexing.fs" />
+    <Compile Include="Unresolved/OperatorPrecedence.fs" />
+    <Compile Include="Unresolved/General.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,8 +18,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.0.1" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.0.1" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+
   </ItemGroup>
 
 </Project>
