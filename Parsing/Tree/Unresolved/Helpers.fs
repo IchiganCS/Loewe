@@ -4,216 +4,125 @@ open Loewe.Parsing.Tree.Unresolved.Types
 open Loewe.Parsing.Tokenizing.Types
 open Loewe.Parsing.Types
 
+let private appendError failure str =
+    match failure with
+    | End -> Failure (Linear ([], str, End))
+    | Multiple (ls, s, _) -> 
+        if s = str then 
+            Failure failure
+        else
+            Failure (Linear (ls, str, failure))
+    | Linear (ls, _, _) ->
+        Failure (Linear (ls, str, failure))
 
-let private expectLogger writer requiredStr (acceptor : Token list -> (Token list * 'a) option) (tokens : Token list option) =
+let private buildEndError tokens str =
+    Failure (Linear (tokens, str, End))
+
+
+/// This function will always return Success. If no match could be made, an empty list will be returned
+let rec private many accepter tokens : ComposingResult<'a list> = 
+    match accepter tokens with
+    | Failure _ -> Success (tokens, [])
+    | Success (toks, args) -> 
+
+    match many accepter toks with
+    | Success (endToks, newArgs) -> Success (endToks, args::newArgs)
+    | Failure _ -> Success (toks, [args])
+
+let rec private all accepter tokens : ComposingResult<'a list> =
+    match accepter tokens with
+    | Failure error -> 
+        match tokens with
+        | [] -> Success (tokens, [])
+        | _ -> Failure error
+    | Success (toks, args) -> 
+
+    match all accepter toks with
+    | Success (endToks, newArgs) -> Success (endToks, args::newArgs)
+    | Failure error -> Failure error
+
+let private optional accepter tokens =
+    match accepter tokens with
+    | Success (toks, value) -> Success (toks, Some value)
+    | Failure _ -> Success (tokens, None)
+
+let private token single tokens : ComposingResult<Token> = 
     match tokens with
-    | None -> None
-    | Some [] -> None
-    | Some l -> 
+    | head::tail -> 
+        if head = single then 
+            Success (tail, single) 
+        else 
+            Failure (Linear (tokens, (sprintf "Expected token %s, but found %s" (string single) (string head)), End))
+    | [] -> Failure (Linear (tokens, (sprintf "Expected token %s, but found none" (string single)), End))
 
-    match acceptor l with
-    | Some (rest, arg) -> Some (rest, arg)
-    | None ->
-        writer (sprintf "Exepected \"%s\", but received %s." requiredStr (string l.Head))
-        None
+let private insert (value : 'a) tokens : ComposingResult<'a> =
+    Success (tokens, value)
 
-let private expect requiredStr acceptor tokens = 
-    expectLogger System.Console.WriteLine requiredStr acceptor tokens
-
-let rec private expectMany str accepter tokens = 
-    match expect str accepter tokens with
-    | None -> None
-    | Some (toks, args) ->
-
-    // weird recursion to always return Some after first expect
-    // None would be wrong
-    match expectMany str accepter (Some toks) with
-    | Some (endToks, newArgs) -> Some (endToks, args::newArgs)
-    | None -> Some (toks, [args])
-
-let private expectSingle single tokens : Token list option = 
-    match expect 
-        (string single)
-        (function 
-        | head::tail -> if head = single then Some (tail, 0) else None
-        | _ -> None)
-        tokens with
-        
-    | Some (toks, _) -> Some toks
-    | _ -> None
-
-let private expectSingleAndCarry single magicTokens : (Token list * 'a) option =
-    match magicTokens with
-    | None -> None
-    | Some (tokens, magicValue) -> 
-        expect 
-            (string single)
-            (function 
-            | head::tail -> if head = single then Some (tail, magicValue) else None
-            | _ -> None)
-            (Some tokens)
-
-let private insert (value : 'a) tokens : (Token list * 'a) option =
-    match tokens with
-    | Some toks -> Some (toks, value)
-    | None -> None
-
-let private combine (getNext : Token list option -> (Token list * 'b) option) (previousResult : (Token list * 'a) option) : (Token list * ('a * 'b)) option =
+let private take (accepter : Token list -> ComposingResult<'b>) (previousResult : ComposingResult<'a>) : ComposingResult<'a * 'b> =
     match previousResult with
-    | None -> None
-    | Some (toks, res1) ->
-        match getNext (Some toks) with
-        | Some (endToks, res2) -> Some (endToks, (res1, res2))
-        | _ -> None 
+    | Failure errors -> Failure errors
+    | Success (tokens, res1) ->
+        match accepter tokens with
+        | Success (endToks, res2) -> Success (endToks, (res1, res2))
+        | Failure errors -> Failure errors
 
-let private cast (caster : 'a -> 'b) (previous : (Token list * 'a) option) =
-    match previous with
-    | None -> None
-    | Some (toks, value) -> Some (toks, (caster value))
+let private skip (accepter : Token list -> ComposingResult<'b>) previousResult : ComposingResult<'a> =
+    match previousResult with
+    | Failure errors -> Failure errors
+    | Success (tokens, value) ->
+        match accepter tokens with
+        | Success (rest, _) -> Success (rest, value)
+        | Failure errors -> Failure errors
 
-let private castResult caster previousGetter =
-    fun x -> cast caster (previousGetter x)
+let private prepare tokens =
+    Success (tokens, ())
 
-let private flatten2 func (value : (Token list * ('a * 'b)) option) =
-    match value with
-    | Some (toks, (a, b)) -> Some (toks, func (a, b))
-    | None -> None
-
-let private flatten3 func (value : (Token list * (('a * 'b) * 'c)) option) =
-    match value with
-    | Some (toks, ((a, b), c)) -> Some (toks, func (a, b, c))
-    | None -> None
-
-let private flatten4 func value =
-    match value with
-    | Some (toks, (((a, b), c), d)) -> Some (toks, func (a, b, c, d))
-    | None -> None
-
-let private flatten5 func value =
-    match value with
-    | Some (toks, ((((a, b), c), d), e)) -> Some (toks, func (a, b, c, d, e))
-    | None -> None
+let rec private either (accepters : (Token list -> ComposingResult<'a>) list) str tokens =
+    match accepters with
+    | head::tail -> 
+        match head tokens with
+        | Success (toks, ret) -> Success (toks, ret)
+        | Failure error -> 
+            match either tail str tokens with
+            | Success (toks, ret) -> Success (toks, ret)
+            | Failure otherErrors -> 
+                match otherErrors with
+                | Multiple (t, s, rr) ->
+                    Failure (Multiple (t, s, rr |> Set.add error))
+                | _ -> raise (System.Exception "either didn't return correct failure type")
+    | _ -> Failure (Multiple (tokens, str, Set.empty))
 
 
-/// Builds a namespace from a given list of strings.
-let private buildNamespace strList = 
-    let rec buildNamespaceRev strList = 
-        match strList with
-        | head::tail -> Namespace.Child (buildNamespaceRev tail, head)
-        | _ -> Namespace.Global
+let private collectTo func str (result: ComposingResult<unit * 'a>) =
+    match result with
+    | Success (toks, (_, a)) -> Success (toks, func a)
+    | Failure errors -> appendError errors str
 
-    if strList = List.empty then
-        None
-    else
-        Some (buildNamespaceRev (List.rev strList))
+let private collectTo2 func str (result: ComposingResult<(unit * 'a) * 'b>) =
+    match result with
+    | Success (toks, ((_, a), b)) -> Success (toks, func (a, b))
+    | Failure errors -> appendError errors str
 
+let private collectTo3 func str (result: ComposingResult<((unit * 'a) * 'b) * 'c>) =
+    match result with
+    | Success (toks, (((_, a), b), c)) -> Success (toks, func (a, b, c))
+    | Failure errors -> appendError errors str
 
-let private optionFilterSet (filter : 'a -> 'b option) (set : 'a Set) : 'b Set =
-    set |> 
-    Set.filter (fun elem -> match filter elem with | Some _ -> true | _ -> false) |>
-    Set.map (fun elem -> match filter elem with | Some b -> b | _ -> raise (System.Exception "will not be reached"))
+let private collectTo4 func str (result: ComposingResult<(((unit * 'a) * 'b) * 'c) * 'd>) =
+    match result with
+    | Success (toks, ((((_, a), b), c), d)) -> Success (toks, func (a, b, c, d))
+    | Failure errors -> appendError errors str
 
-
-
-let acceptIdentifier tokens =
-    match tokens with
-    | (Token.Identifier str)::tail ->
-        Some (tail, str)
-    | _ -> None
-
-
-/// Builds a string list from dot separated identifiers
-let acceptStringList tokens =
-    let rec helper tokens = 
-        match expect "identifier" acceptIdentifier tokens with
-        | None -> None
-        | Some (rest, str) ->
-            match
-                helper 
-                (Some rest |>
-                expectSingle (Token.Separator Separator.Dot)) with
-            | Some (restOfRest, strList) -> Some (restOfRest, str::strList)
-            | None -> Some (rest, [str])        
+let private collectTo5 func str (result: ComposingResult<((((unit * 'a) * 'b) * 'c) * 'd) * 'e>) =
+    match result with
+    | Success (toks, (((((_, a), b), c), d), e)) -> Success (toks, func (a, b, c, d, e))
+    | Failure errors -> appendError errors str
 
 
-    helper (Some tokens)
-
-/// Builds a namespace following proper separated sub-namespaces
-let acceptNamespace tokens =
-    match acceptStringList tokens with
-    | Some (toks, strList) -> 
-        match buildNamespace strList with
-        | Some ns -> Some (toks, ns)
-        | None -> None
-    | None -> None
-
-let acceptQualifiedIdentifier tokens : (Token list * UnresolvedQualifiedIdentifier) option =
-    cast 
-        (fun strList ->
-            match List.rev strList with
-            | last::front -> (last, (buildNamespace (List.rev front)))
-            | [] -> ("", None) // shouldn't be reached
-        )
-        (acceptStringList tokens)
-
-/// Reads open, a namespace and the semicolon
-let acceptOpenDirective tokens = 
-    Some tokens |>
-    expectSingle (Token.Keyword Keyword.Open) |>
-    expect "Namespace identifier" acceptNamespace |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)
-
-/// Reads namespace, a namespace, and the semicolon
-let acceptNamespaceDirective tokens =
-    Some tokens |>
-    expectSingle (Token.Keyword Keyword.Namespace) |>
-    expect "Namespace identifier" acceptNamespace |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)
-
-/// Reads the namespace declaration and the open directives
-let acceptFileHeader tokens = 
-    Some tokens |>
-    expect "Namespace declaration" acceptNamespaceDirective |>
-    combine (castResult Set.ofList (expectMany "Namespace openings" acceptOpenDirective))
-
-let acceptBinaryOperationToken tokens =
-    match tokens with
-    | (Token.Operator op)::tail ->
-        match op with
-        | Operator.And -> Some (tail, BinaryOperation.And)
-        | Operator.Or -> Some (tail, BinaryOperation.Or)
-        | Operator.Plus -> Some (tail, BinaryOperation.Addition)
-        | Operator.Minus -> Some (tail, BinaryOperation.Subtraction)
-        | Operator.Divide -> Some (tail, BinaryOperation.Division)
-        | Operator.Star -> Some (tail, BinaryOperation.Multiplication)
-        | Operator.Percent -> Some (tail, BinaryOperation.Modulo)
-        | Operator.Equal -> Some (tail, BinaryOperation.Equal)
-        | Operator.EqualNot -> Some (tail, BinaryOperation.NotEqual)
-        | Operator.Not -> None
 
 
-    | _ -> None
 
-let acceptUnaryOperationToken tokens =
-    match tokens with
-    | (Token.Operator op)::tail ->
-        match op with
-        | Operator.Not -> Some (tail, UnaryOperation.Not)
-        | _ -> None
-
-    | _ -> None
-
-let acceptLiteral tokens =
-    match tokens with
-    | (Token.Literal l)::tail -> Some (tail, UnresolvedExpression.Literal l)
-    | _ -> None
-
-let acceptVariable tokens =
-    match acceptQualifiedIdentifier tokens with
-    | Some (toks, id) -> Some (toks, UnresolvedExpression.Variable id)
-    | None -> None
-
-let private appendToOperationChain leftExpr binOp rightExpr : UnresolvedExpression =
+let private operationChain (leftExpr, binOp, rightExpr) : UnresolvedExpression =
     // we need to check operator precedence
     // The battled term is initially the left part of the lowest binary operation in the right expression
     // If the operand in that lowest expression has a lower precedence than our given operator, we need to swap precedence and are finished
@@ -244,313 +153,404 @@ let private appendToOperationChain leftExpr binOp rightExpr : UnresolvedExpressi
         // if None is returned, no replacing was done - thus just build a new operation around it.
         UnresolvedExpression.BinaryOperation (leftExpr, binOp, rightExpr)
 
+let binaryOperationToken tokens =
+    match tokens with 
+    | (Token.Operator op)::tail ->
+        match op with
+        | Operator.And -> Success (tail, BinaryOperation.And)
+        | Operator.Or -> Success (tail, BinaryOperation.Or)
+        | Operator.Plus -> Success (tail, BinaryOperation.Addition)
+        | Operator.Minus -> Success (tail, BinaryOperation.Subtraction)
+        | Operator.Divide -> Success (tail, BinaryOperation.Division)
+        | Operator.Star -> Success (tail, BinaryOperation.Multiplication)
+        | Operator.Percent -> Success (tail, BinaryOperation.Modulo)
+        | Operator.Equal -> Success (tail, BinaryOperation.Equal)
+        | Operator.EqualNot -> Success (tail, BinaryOperation.NotEqual)
+        | Operator.Not -> buildEndError tokens "Tried to read binary operation token"
 
-let rec acceptBinaryOperation leftExpr tokens =
-    (Some tokens |>
-    insert leftExpr |>
-    combine (expect "binary operation" acceptBinaryOperationToken) |>
-    combine (expect "second operand" acceptExpression)) |>
-    
-    flatten3    
-        (fun (leftExpr, op1, rightExpr) ->
-            appendToOperationChain leftExpr op1 rightExpr)
+    | _ -> buildEndError tokens "Tried to read binary operation token"
 
-and acceptNewAssignment tokens =
-    (Some tokens |>
-    expect "qualified type" acceptQualifiedIdentifier |>
-    combine (expect "variable name" acceptIdentifier) |>
-    expectSingleAndCarry (Token.Separator Separator.EqualSign) |>
-    combine (expect "expression" acceptExpression) |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)) |>
+let unaryOperationToken tokens =
+    match tokens with 
+    | (Token.Operator op)::tail ->
+        match op with
+        | Operator.Not -> Success (tail, UnaryOperation.Not)
+        | Operator.Minus -> Success (tail, UnaryOperation.Negate)
+        | Operator.And -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Or -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Plus -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Divide -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Star -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Percent -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.Equal -> buildEndError tokens "Tried to read unary operation token"
+        | Operator.EqualNot -> buildEndError tokens "Tried to read unary operation token"
 
-    flatten3 UnresolvedStatement.NewAssignment
-
-and acceptKnownAssignment tokens =
-    (Some tokens |>
-    expect "variable value" acceptExpression |>
-    expectSingleAndCarry (Token.Separator Separator.EqualSign) |>
-    combine (expect "assignment value" acceptExpression) |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)) |>
-
-    flatten2 UnresolvedStatement.KnownAssignment
-
-and acceptParameterList tokens =
-    // reads the parameter list, but not parantheses
-    let rec helper helperTokens =
-        match helperTokens with
-        | (Token.Separator Separator.BracketClose)::_ -> Some (helperTokens, [])
-        | _ ->
-        
-        match
-            (Some helperTokens |>
-            expect "parameter value" acceptExpression) with
-        | None -> None
-        | Some (toks, expr) ->
-        
-        match toks with
-        | (Token.Separator Separator.Comma)::tail ->
-            match helper tail with
-            | Some (endToks, nextParams) -> Some (endToks, expr::nextParams)
-            | None -> None
-        | (Token.Separator Separator.BracketClose)::_ ->
-            Some (toks, [expr])
-        | _ -> None
-
-    Some tokens |>
-    expectSingle (Token.Separator Separator.BracketOpen) |>
-    expect "parameter list content" helper |>
-    expectSingleAndCarry (Token.Separator Separator.BracketClose)
-        
-and acceptUnaryOperation tokens =
-    (Some tokens |>
-    expect "unary operation" acceptUnaryOperationToken |>
-    combine (expect "operand" acceptExpression)) |>
-
-    flatten2 UnresolvedExpression.UnaryOperation
-
-and acceptBracketedExpression tokens =
-    (Some tokens |>
-    expectSingle (Token.Separator Separator.BracketOpen) |>
-    expect "expression" acceptExpression |>
-    expectSingleAndCarry (Token.Separator Separator.BracketClose)) |>
-
-    cast UnresolvedExpression.Bracketed
-
-and acceptFunctionCall tokens =
-    (Some tokens |>
-    expect "functionName" acceptQualifiedIdentifier |>
-    combine (expect "function parameters" acceptParameterList)) |>
-    
-    flatten2 UnresolvedExpression.FunctionCall
-
-and acceptMethodCall expr tokens =
-    (Some tokens |>
-    insert expr |>
-    expectSingleAndCarry (Token.Separator Separator.Dot) |>
-    combine (expect "method name" acceptIdentifier) |>
-    combine (expect "call parameters" acceptParameterList)) |>
-
-    flatten3 UnresolvedExpression.MethodCall
-
-and acceptExpression tokens : (Token list * UnresolvedExpression) option =
-    let rec tryExpand = function
-        | Some (toks, expr) -> 
-            match tryExpand (acceptBinaryOperation expr toks) with
-            | Some (restToks, expr) -> Some (restToks, expr)
-            | None -> 
-
-            match tryExpand (acceptMethodCall expr toks) with
-            | Some (restToks, expr) -> Some (restToks, expr)
-            | None -> 
-
-            Some (toks, expr)
-        | None -> None
-
-    match tryExpand (acceptLiteral tokens) with
-    | Some (toks, expr) -> Some (toks, expr)
-    | None ->
-
-    match tryExpand (acceptFunctionCall tokens) with
-    | Some (toks, expr) -> Some (toks, expr)
-    | None ->
-
-    match tryExpand (acceptVariable tokens) with
-    | Some (toks, expr) -> Some (toks, expr)
-    | None ->
-
-    match tryExpand (acceptUnaryOperation tokens) with
-    | Some (toks, expr) -> Some (toks, expr)
-    | None ->
-
-    match tryExpand (acceptBracketedExpression tokens) with
-    | Some (toks, expr) -> Some (toks, expr)
-    | None ->
-
-    None
-
-and acceptIf tokens =
-    (Some tokens |>
-    expectSingle (Token.Keyword Keyword.If) |>
-    expectSingle (Token.Separator Separator.BracketOpen) |>
-    expect "condition" acceptExpression |>
-    expectSingleAndCarry (Token.Separator Separator.BracketClose) |>
-    combine (expect "if body" acceptCodeblock)) |>
-    
-    flatten2 UnresolvedStatement.If
-
-and acceptWhile tokens =
-    (Some tokens |>
-    expectSingle (Token.Keyword Keyword.While) |>
-    expectSingle (Token.Separator Separator.BracketOpen) |>
-    expect "condition" acceptExpression |>
-    expectSingleAndCarry (Token.Separator Separator.BracketClose) |>
-    combine (expect "while body" acceptCodeblock)) |>
-
-    flatten2 UnresolvedStatement.While
+    | _ -> buildEndError tokens "Tried to read unary operation token"
 
 
-and acceptStatementExpression tokens =
-    (Some tokens |>
-    expect "expression" acceptExpression |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)) |>
 
-    cast UnresolvedStatement.Expression
 
-        
 
-and acceptStatement tokens =
-    match acceptNewAssignment tokens with
-    | Some stat -> Some stat
-    | None ->
+let rec expression tokens =
+    // generally, each part of the code should expand to the maximum it could possibly mean, not just the first occurence
+    // usually, this is not a problem, it becomes a problem only for expressions, since some expressions start with expressions.
+    // therefore, we need to handle those expressions separately
 
-    match acceptKnownAssignment tokens with
-    | Some stat -> Some stat
-    | None ->
+    let rec tryExpand result =
+        match result with
+        | Failure errors -> Failure errors
+        | Success (rest, expr) ->
+            match 
+                // here we try to build new expressions
+                // in this way, expressions are recursively built right to left (<- this is important!)
+                either [
+                    (methodCall expr)
+                    (attribute expr);
+                    (binaryOperation expr)
+                    ] "expand to greater expression" rest with
+            | Success (a, b) -> tryExpand (Success (a, b))
+            | Failure _ -> result
 
-    match acceptIf tokens with
-    | Some stat -> Some stat
-    | None ->
+    // try those which don't start with expressions
+    tryExpand (either [
+        literalExpression;
+        bracketedExpression;
+        unaryOperation;
+        functionCall;
+        variable;
+    ] "expression" tokens)
 
-    match acceptWhile tokens with
-    | Some stat -> Some stat
-    | None ->
+and typedParameterList tokens =
+    let rec commadTypedParameters tokens =
+        prepare tokens |>
+        take qualifiedIdentifier |>
+        take identifier |>
+        skip (token (Separator Comma)) |>
+        collectTo2 id "typed parameter list"
 
-    match acceptStatementExpression tokens with
-    | Some stat -> Some stat
-    | None -> 
+    let rec lastTypedParameter tokens =
+        prepare tokens |>
+        take qualifiedIdentifier |>
+        take identifier |>
+        collectTo2 id "last parameter"
 
-    None
+    let rec someTypeParameter tokens =
+        prepare tokens |>
+        take (many commadTypedParameters) |>
+        take lastTypedParameter |>
+        skip (token (Separator BracketClose)) |>
+        collectTo2 (fun (aheadList, last) -> aheadList@[last]) "parameter list with entires"
 
-and acceptCodeblock tokens =
+    let rec noTypeParameter tokens =
+        prepare tokens |>
+        take (token (Separator BracketClose)) |>
+        collectTo (fun _ -> []) "empty parameter list"
+
+    prepare tokens |>
+    skip (token (Separator BracketOpen)) |>
+    take (either [noTypeParameter; someTypeParameter] "parameter list") |>
+    collectTo id "typed parameter list"
+
+
+and literal tokens =
     match tokens with
-    | (Token.Separator Separator.CurvedBracketOpen)::(Token.Separator Separator.CurvedBracketClose)::tail -> Some (tail, [])
-    | _ ->
+    | (Literal l)::tail -> Success (tail, l)
+    | _ -> Failure (Linear (tokens, "literal", End))
 
-    Some tokens |>
-    expectSingle (Token.Separator Separator.CurvedBracketOpen) |>
-    expectMany "statements" acceptStatement |>
-    expectSingleAndCarry (Token.Separator Separator.CurvedBracketClose)
+and literalExpression tokens =
+    prepare tokens |>
+    take literal |>
+    collectTo UnresolvedExpression.Literal "literal expression"
 
-let acceptDeclarationParameterList tokens =
-    // reads the parameter list, but not parantheses
-    let rec helper helperTokens =
-        match helperTokens with
-        | (Token.Separator Separator.BracketClose)::_ -> Some (helperTokens, [])
-        | _ ->
+and binaryOperation expr tokens =
+    prepare tokens |>
+    take (insert expr) |>
+    take binaryOperationToken |>
+    take expression |>
+    collectTo3 operationChain "binary operation"
 
-        match
-            (Some helperTokens |>
-            expect "qualified parameter type" acceptQualifiedIdentifier |>
-            combine (expect "parameter name" acceptIdentifier)) with
-        | None -> None
-        | Some (toks, (qtype, name)) ->
-        
-        match toks with
-        | (Token.Separator Separator.Comma)::tail ->
-            match helper tail with
-            | Some (endToks, nextParams) -> Some (endToks, (qtype, name)::nextParams)
-            | None -> None
-        | (Token.Separator Separator.BracketClose)::_ ->
-            Some (toks, [(qtype, name)])
-        | _ -> None
+and methodCall expr tokens =
+    prepare tokens |>
+    take (insert expr) |>
+    skip (token (Separator Dot)) |>
+    take identifier |>
+    take parameterList |>
+    collectTo3 UnresolvedExpression.MethodCall "method call"
 
-    Some tokens |>
-    expectSingle (Token.Separator Separator.BracketOpen) |>
-    expect "parameter list content" helper |>
-    expectSingleAndCarry (Token.Separator Separator.BracketClose)
-      
-type UnresolvedClassMember =
-    | Attribute of UnresolvedAttribute
-    | Method of AccessModifier * UnresolvedFunction
+and functionCall tokens =
+    prepare tokens |>
+    take qualifiedIdentifier |>
+    take parameterList |>
+    collectTo2 UnresolvedExpression.FunctionCall "function call"
 
-let acceptClassAccessModifier tokens =
+and parameterList tokens =
+    let rec commadParameters tokens =
+        prepare tokens |>
+        take expression |>
+        skip (token (Separator Comma)) |>
+        collectTo id "commad parameter list"
+
+    let rec lastTypedParameter tokens =
+        prepare tokens |>
+        take expression |>
+        collectTo id "last parameter"
+
+    let rec someTypeParameter tokens =
+        prepare tokens |>
+        take (many commadParameters) |>
+        take lastTypedParameter |>
+        skip (token (Separator BracketClose)) |>
+        collectTo2 (fun (aheadList, last) -> aheadList@[last]) "parameter list with entires"
+
+    let rec noTypeParameter tokens =
+        prepare tokens |>
+        take (token (Separator BracketClose)) |>
+        collectTo (fun _ -> []) "empty parameter list"
+
+    prepare tokens |>
+    skip (token (Separator BracketOpen)) |>
+    take (either [noTypeParameter; someTypeParameter] "parameter list") |>
+    collectTo id "typed parameter list"
+
+and unaryOperation tokens =
+    prepare tokens |>
+    take unaryOperationToken |>
+    take expression |>
+    collectTo2 UnaryOperation "unary operation"
+
+and variable tokens =
+    prepare tokens |>
+    take qualifiedIdentifier |>
+    collectTo Variable "variable"
+
+and attribute expr tokens =
+    prepare tokens |>
+    take (insert expr) |>
+    skip (token (Separator Dot)) |>
+    take identifier |>
+    collectTo2 UnresolvedExpression.Attribute "attribute"
+
+and qualifiedIdentifier tokens : ComposingResult<UnresolvedQualifiedIdentifier> =
+    prepare tokens |>
+    take (optional namespacePrefix) |>
+    take identifier |>
+    collectTo2 (fun (nsp, i) -> i, nsp) "qualified identifier"
+
+and identifier tokens =
     match tokens with
-    | (Token.Keyword k)::tail ->
+    | (Identifier str)::tail -> Success (tail, str)
+    | _ -> Failure (Linear (tokens, "identifier", End))
+
+and namespacePrefix tokens =
+    let rec buildNamespaceRev strList =
+        match strList with
+        | [] -> Global
+        | head::tail -> Child ((buildNamespaceRev tail), head)
+
+    let buildNamespace strList =
+        buildNamespaceRev (strList |> List.rev)
+    let namespaceAndDot toks =
+        prepare toks |>
+        take identifier |>
+        skip (token (Separator DoubleDot)) |>
+        collectTo id "namespace and dot"
+
+    prepare tokens |>
+    take (many namespaceAndDot) |>
+    collectTo buildNamespace "namespace prefix"
+
+and ``namespace`` tokens =
+    let rec buildNamespaceRev strList =
+        match strList with
+        | [] -> Global
+        | head::tail -> Child ((buildNamespaceRev tail), head)
+
+    let buildNamespace strList =
+        buildNamespaceRev (strList |> List.rev)
+
+    let namespaceAndDot toks =
+        prepare toks |>
+        take identifier |>
+        skip (token (Separator DoubleDot)) |>
+        collectTo id "namespace and dot"
+
+    prepare tokens |>
+    take (many namespaceAndDot) |>
+    take identifier |>
+    collectTo2 (fun (strList, last) -> Child ((buildNamespace strList), last)) "namespace"
+
+
+and bracketedExpression tokens =
+    prepare tokens |>
+    skip (token (Separator BracketOpen)) |>
+    take expression |>
+    skip (token (Separator BracketClose)) |>
+    collectTo Bracketed "bracketed expression"
+
+and statementExpression tokens =
+    prepare tokens |>
+    take expression |>
+    skip (token (Separator Semicolon)) |>
+    collectTo Expression "statemented expression"
+
+and knownAssignment tokens =
+    prepare tokens |>
+    take expression |>
+    skip (token (Separator EqualSign)) |>
+    take expression |>
+    skip (token (Separator Semicolon)) |>
+    collectTo2 KnownAssignment "known assignment"
+
+and codeBlock tokens =
+    prepare tokens |>
+    skip (token (Separator CurvedBracketOpen)) |>
+    take (many statement) |>
+    skip (token (Separator CurvedBracketClose)) |>
+    collectTo id "code block"
+
+and newAssignment tokens =
+    prepare tokens |>
+    take qualifiedIdentifier |>
+    take identifier |>
+    skip (token (Separator EqualSign)) |>
+    take expression |>
+    skip (token (Separator Semicolon)) |>
+    collectTo3 NewAssignment "new assignment"
+
+     
+and statement tokens =
+    either [
+        knownAssignment;
+        newAssignment;
+        ``return``;
+        ``if``;
+        ``while``;
+        statementExpression;
+    ] "statement" tokens 
+
+and ``while`` tokens =
+    prepare tokens |>
+    skip (token (Keyword While)) |>
+    skip (token (Separator BracketOpen)) |>
+    take expression |>
+    skip (token (Separator BracketClose)) |>
+    take codeBlock |>
+    collectTo2 UnresolvedStatement.While "while"
+
+and ``if`` tokens =
+    prepare tokens |>
+    skip (token (Keyword If)) |>
+    skip (token (Separator BracketOpen)) |>
+    take expression |>
+    skip (token (Separator BracketClose)) |>
+    take codeBlock |>
+    collectTo2 UnresolvedStatement.If "while"
+
+and ``return`` tokens =
+    prepare tokens |>
+    skip (token (Keyword Return)) |>
+    take expression |>
+    skip (token (Separator Semicolon)) |>
+    collectTo UnresolvedStatement.Return "return"
+
+and classDefinition tokens =
+    prepare tokens |>
+    skip (token (Keyword Class)) |>
+    take identifier |>
+    skip (token (Separator CurvedBracketOpen)) |>
+    take (many classMember) |>
+    skip (token (Separator CurvedBracketClose)) |>
+    collectTo2 (fun (name, members) -> 
+            UnresolvedTopLevelEntry.Class {
+                Name = name
+                Members = members |> Set.ofList
+            }
+        ) "class"
+
+and classMember tokens =
+    prepare tokens |>
+    take (either [
+        methodDefinition;
+        attributeDefinition;
+    ] "class member") |>
+    collectTo id "class member"
+
+and methodDefinition tokens =
+    prepare tokens |>
+    take accessModifier |>
+    take qualifiedIdentifier |>
+    take identifier |>
+    take typedParameterList |>
+    take codeBlock |>
+    collectTo5 (fun (am, qi, i, tpl, cb) -> 
+        Method {
+            Name = i
+            AccessModifier = am
+            Parameters = tpl
+            Code = cb
+            Return = qi
+        }) "class method"
+
+and attributeDefinition tokens =
+    prepare tokens |>
+    take accessModifier |>
+    take qualifiedIdentifier |>
+    take identifier |>
+    skip (token (Separator Semicolon)) |>
+    collectTo3 (fun (am, qi, i) ->
+        Attribute {
+            Name = i
+            AccessModifier = am
+            Type = qi
+        }) "class attribute"
+
+and functionDefinition  tokens =
+    prepare tokens |>
+    take qualifiedIdentifier |>
+    take identifier |>
+    take typedParameterList |>
+    take codeBlock |>
+    collectTo4 (fun (qi, i, tpl, cb) ->
+        UnresolvedTopLevelEntry.Function {
+            Name = i
+            Return = qi
+            Parameters = tpl
+            Code = cb
+        }) "function"
+
+and ``topLevelSymbol`` tokens =
+    prepare tokens |>
+    take (either [classDefinition; functionDefinition] "top level symbol") |>
+    collectTo id "top level symbol"
+
+and namespaceDeclaration tokens =
+    prepare tokens |>
+    skip (token (Keyword Namespace)) |>
+    take ``namespace`` |>
+    skip (token (Separator Semicolon)) |>
+    collectTo id "namespace declaration"
+
+and openNamespace tokens =
+    prepare tokens |>
+    skip (token (Keyword Open)) |>
+    take ``namespace`` |>
+    skip (token (Separator Semicolon)) |>
+    collectTo id "namespace open"
+
+and file tokens : ComposingResult<UnresolvedFile> =
+    prepare tokens |>
+    take namespaceDeclaration |>
+    take (many openNamespace) |>
+    take (all topLevelSymbol) |>
+    collectTo3 
+        (fun (nsp, onsp, tls) -> 
+        (nsp, onsp |> Set.ofList, tls |> Set.ofList)) "file"
+
+and accessModifier tokens =
+    match tokens with
+    | (Keyword k)::tail ->
         match k with
-        | Keyword.Public -> Some (tail, AccessModifier.Public)
-        | Keyword.Private -> Some (tail, AccessModifier.Private)
-        | _ -> None
-    | _ -> None
-
-let acceptClassAttribute tokens =
-    (Some tokens |>
-    expect "access modifier" acceptClassAccessModifier |>
-    combine (expect "qualified type" acceptQualifiedIdentifier) |>
-    combine (expect "attribute name" acceptIdentifier) |>
-    expectSingleAndCarry (Token.Separator Separator.Semicolon)) |>
-    
-    flatten3
-        (fun (acc, qtype, name) -> UnresolvedClassMember.Attribute {
-            Name = name
-            Type = qtype
-            AccessModifier = acc
-        })
-
-let acceptClassMethod tokens =
-    (Some tokens |>
-    expect "access modifier" acceptClassAccessModifier |>
-    combine (expect "return type" acceptQualifiedIdentifier) |>
-    combine (expect "method name" acceptIdentifier) |>
-    combine (expect "parameter list" acceptDeclarationParameterList) |>
-    combine (expect "method code" acceptCodeblock)) |>
-    
-    flatten5
-        (fun (acc, ret, name, paramList, code) -> UnresolvedClassMember.Method (acc, {
-            Name = name
-            Return = ret
-            Parameters = paramList
-            Code = code
-        }))
-
-let acceptClassMember tokens =
-    match acceptClassAttribute tokens with
-    | Some cm -> Some cm
-    | None ->
-
-    match acceptClassMethod tokens with
-    | Some cm -> Some cm
-    | None -> None
-
-
-let acceptClassDefinition tokens =
-    (Some tokens |>
-    expectSingle (Token.Keyword Keyword.Class) |>
-    expect "class name" acceptIdentifier |>
-    expectSingleAndCarry (Token.Separator Separator.CurvedBracketOpen) |>
-    combine (castResult Set.ofList (expectMany "class members" acceptClassMember)) |>
-    expectSingleAndCarry (Token.Separator Separator.CurvedBracketClose)) |>
-    
-    flatten2
-        (fun (name, members) -> {
-            Name = name
-            Methods = 
-                members |> 
-                optionFilterSet (fun m -> match m with | Method (a, m) -> Some (a, m) | _ -> None)
-            Attributes = 
-                members |> 
-                optionFilterSet (fun m -> match m with | Attribute a -> Some a | _ -> None)
-        })
-
-let acceptFunctionDefinition tokens =
-    (Some tokens |>
-    expect "return type" acceptQualifiedIdentifier |>
-    combine (expect "function name" acceptIdentifier) |>
-    combine (expect "parameter list" acceptDeclarationParameterList) |>
-    combine (expect "function code block" acceptCodeblock)) |>
-    
-    flatten4
-        (fun (retType, name, paramList, code) -> {
-            Name = name
-            Return = retType
-            Parameters = paramList
-            Code = code
-        })
-
-let acceptFileBodyMember namesp opened tokens =
-    match acceptFunctionDefinition tokens with
-    | Some (toks, fn) -> Some (toks, (UnresolvedTopLevelEntry.Function (namesp, fn, opened)))
-    | None ->
-
-    match acceptClassDefinition tokens with
-    | Some (toks, cl) -> Some (toks, (UnresolvedTopLevelEntry.Class (namesp, cl, opened)))
-    | None -> None
+        | Keyword.Public -> Success (tail, AccessModifier.Public)
+        | Keyword.Private -> Success (tail, AccessModifier.Private)
+        | _ -> buildEndError tokens "access modifier"
+    | _ -> buildEndError tokens "access modifier"

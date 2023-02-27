@@ -11,6 +11,7 @@ type UnresolvedExpression =
     | UnaryOperation of UnaryOperation * UnresolvedExpression
     | Literal of Literal
     | Variable of UnresolvedQualifiedIdentifier
+    | Attribute of UnresolvedExpression * string
     | Bracketed of UnresolvedExpression
     | FunctionCall of UnresolvedQualifiedIdentifier * UnresolvedExpression list
     | MethodCall of UnresolvedExpression * string * UnresolvedExpression list
@@ -24,6 +25,7 @@ type UnresolvedStatement =
     | IfElifElse of (UnresolvedExpression * UnresolvedStatement list) list * UnresolvedStatement list
     | Expression of UnresolvedExpression
     | While of UnresolvedExpression * UnresolvedStatement list
+    | Return of UnresolvedExpression
 
 
 type UnresolvedFunction = {
@@ -33,27 +35,44 @@ type UnresolvedFunction = {
     Code: UnresolvedStatement list
 }
 
+type UnresolvedMethod = {
+    Name: string
+    Return: UnresolvedQualifiedIdentifier
+    Parameters: (UnresolvedQualifiedIdentifier * string) list
+    Code: UnresolvedStatement list
+    AccessModifier: AccessModifier
+}
+
 type UnresolvedAttribute = {
     Name: string
     Type: UnresolvedQualifiedIdentifier
     AccessModifier: AccessModifier
 }
 
+type UnresolvedClassMember =
+    | Method of UnresolvedMethod
+    | Attribute of UnresolvedAttribute
+
 type UnresolvedType = {
     Name: string
-    Methods: (AccessModifier * UnresolvedFunction) Set
-    Attributes: UnresolvedAttribute Set
+    Members: UnresolvedClassMember Set
 }
 
 type UnresolvedTopLevelEntry =
-    | Class of Namespace * UnresolvedType * Namespace Set
-    | Function of Namespace * UnresolvedFunction * Namespace Set
+    | Class of UnresolvedType
+    | Function of UnresolvedFunction
+
+type UnresolvedFile = Namespace * Namespace Set * UnresolvedTopLevelEntry Set
 
 
-type ComposingError = Token list * string
+
+type ComposingErrorTrace = 
+    | End
+    | Linear of Token list * string * ComposingErrorTrace
+    | Multiple of Token list * string * ComposingErrorTrace Set
     
 /// A result of composing. If the process was completed successfully, the list of remaining tokens and the identified object is returned.
-/// In case of a failure, a list of failures (similar to a backtrace) is provided. The first element is the top most failure.
+/// In case of a failure, a list of failures (similar to a backtrace) is provided.
 type ComposingResult<'a> =
     | Success of Token list * 'a
-    | Failure of ComposingError list
+    | Failure of ComposingErrorTrace

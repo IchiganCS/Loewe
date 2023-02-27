@@ -17,7 +17,7 @@ let buildTestTokens str =
 
 let testProgram = buildTestTokens "
     namespace Test;
-    open Test.Asgasg;
+    open Test:Asgasg;
     
     class Holter {
         public int diPolter;
@@ -25,21 +25,28 @@ let testProgram = buildTestTokens "
         private void dont() {
             
         }
+
+        private int s() {
+            return diPolter;
+        }
     }
     
     asgpih asdg(awef name, sdg aegas) {
         int x = asd + asdgasd * etst + 124;
         if (y) {
             asgun(12512, 346, \"asfasf\");
+            3 + 5;
             y = 125125;
+            c.s() = 3;
+            x = 3;
         }
     
         while (sadf.diPolter) {
             Test:Holter sadf = Test:Holter();
             sadf.diPolter = 4124;
-            sadf.dont();
+            sadf.dont();();
         }
     }"
-match buildUnresolvedFromFile testProgram with
-| Some members -> ()
-| None -> ()
+match composeFile testProgram with
+| ComposingFileResult.Success members -> ()
+| ComposingFileResult.Failure cet -> ()

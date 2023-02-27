@@ -31,8 +31,8 @@ let toksBinOpPrecedence3 = buildTestTokens "a - b * c / d / e"
 
 [<Fact>]
 let testBinOpPrecdence1 () =
-    match acceptExpression toksBinOpPrecedence1 with
-    | Some ([], expr) -> 
+    match expression toksBinOpPrecedence1 with
+    | ComposingResult.Success ([], expr) -> 
         Assert.Equal (expr, 
             (minus 
                 (plus (multiply aVar bVar) cVar)
@@ -41,8 +41,8 @@ let testBinOpPrecdence1 () =
 
 [<Fact>]
 let testBinOpPrecdence2 () =
-    match acceptExpression toksBinOpPrecedence2 with
-    | Some ([], expr) -> 
+    match expression toksBinOpPrecedence2 with
+    | ComposingResult.Success ([], expr) -> 
         Assert.Equal (expr, 
             (plus 
                 (minus
@@ -54,8 +54,8 @@ let testBinOpPrecdence2 () =
 
 [<Fact>]
 let testBinOpPrecdence3 () =
-    match acceptExpression toksBinOpPrecedence3 with
-    | Some ([], expr) -> 
+    match expression toksBinOpPrecedence3 with
+    | ComposingResult.Success ([], expr) -> 
         Assert.Equal (expr, 
             (minus 
                 aVar

@@ -45,6 +45,7 @@ let checkOperatorPrecedence binOp1 binOp2 =
 
 type UnaryOperation =
     | Not
+    | Negate
 
 type Position = {
     Line: int
