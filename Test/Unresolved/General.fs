@@ -16,7 +16,7 @@ let buildTestTokens str =
 
 let testProgram = buildTestTokens "
 namespace Test;
-open Test.Asgasg;
+open Test:Asgasg;
 
 class Holter {
     public int diPolter;
@@ -42,6 +42,8 @@ asgpih asdg(awef name, sdg aegas) {
 
 [<Fact>]
 let ``Simple test program`` () =
-    match buildUnresolvedFromFile testProgram with
-    | Some members -> Assert.Equal (2, members |> Set.count)
-    | None -> Assert.True false
+    match composeFile testProgram with
+    | ComposingFileResult.Success file -> 
+        let (_, _, members) = file
+        Assert.Equal (2, members |> Set.count)
+    | ComposingFileResult.Failure _ -> Assert.True false

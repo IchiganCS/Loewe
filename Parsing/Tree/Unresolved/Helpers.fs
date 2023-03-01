@@ -29,6 +29,8 @@ let rec private many accepter tokens : ComposingResult<'a list> =
     | Success (endToks, newArgs) -> Success (endToks, args::newArgs)
     | Failure _ -> Success (toks, [args])
 
+/// Matches recursively until tokens is empty - if no match could be made, but tokens still
+/// contains elements, failure is returned for the last error
 let rec private all accepter tokens : ComposingResult<'a list> =
     match accepter tokens with
     | Failure error -> 
@@ -41,11 +43,14 @@ let rec private all accepter tokens : ComposingResult<'a list> =
     | Success (endToks, newArgs) -> Success (endToks, args::newArgs)
     | Failure error -> Failure error
 
+/// Tries to match with tokens - if success, Some value is returned
+/// If the match could not be made, None is returned.
 let private optional accepter tokens =
     match accepter tokens with
     | Success (toks, value) -> Success (toks, Some value)
     | Failure _ -> Success (tokens, None)
 
+/// Tries to match a single token
 let private token single tokens : ComposingResult<Token> = 
     match tokens with
     | head::tail -> 
@@ -55,9 +60,14 @@ let private token single tokens : ComposingResult<Token> =
             Failure (Linear (tokens, (sprintf "Expected token %s, but found %s" (string single) (string head)), End))
     | [] -> Failure (Linear (tokens, (sprintf "Expected token %s, but found none" (string single)), End))
 
+/// Wraps a value into a composing result
 let private insert (value : 'a) tokens : ComposingResult<'a> =
     Success (tokens, value)
 
+/// Tries to match with a given accepter method - together with a previous result
+/// If the previous result is a failure, the error is returned for currying, if previous
+/// was a success, the accepter is tried to make a match and the result is returned tupled with
+/// the previous result.
 let private take (accepter : Token list -> ComposingResult<'b>) (previousResult : ComposingResult<'a>) : ComposingResult<'a * 'b> =
     match previousResult with
     | Failure errors -> Failure errors
@@ -66,19 +76,40 @@ let private take (accepter : Token list -> ComposingResult<'b>) (previousResult 
         | Success (endToks, res2) -> Success (endToks, (res1, res2))
         | Failure errors -> Failure errors
 
-let private skip (accepter : Token list -> ComposingResult<'b>) previousResult : ComposingResult<'a> =
+/// Matches the recurring acceptor as long as possible - as soon as no match could be made
+/// the end acceptor is tried. If succeded, the list of matches of previous matches is returned.
+/// If the end acceptor fails, the method fails and returns the failures of both, 
+/// the recurring and end acceptor in that order.
+let rec private until endAcceptor recurringAcceptor tokens =
+    match recurringAcceptor tokens with
+    | Failure cet -> 
+        match endAcceptor tokens with
+        | Success (tokens, _) -> Success (tokens, [])
+        | Failure cet2 -> Failure (Multiple (tokens, "until", [cet; cet2] |> Set.ofList))
+         
+    | Success (tokens, value) ->    
+        match until endAcceptor recurringAcceptor tokens with
+        | Success (tokens, list) -> Success (tokens, value::list)
+        | Failure cet -> Failure cet
+
+/// Takes a previous result - if that is a failure, the failure is forwarded. If the result
+/// was a success, the acceptor is tried to make the next match. If operation results in a
+/// success, the value of previous and tokens of acceptor are returned.
+let private skip (acceptor : Token list -> ComposingResult<'b>) previousResult : ComposingResult<'a> =
     match previousResult with
     | Failure errors -> Failure errors
     | Success (tokens, value) ->
-        match accepter tokens with
+        match acceptor tokens with
         | Success (rest, _) -> Success (rest, value)
         | Failure errors -> Failure errors
 
 let private prepare tokens =
     Success (tokens, ())
 
-let rec private either (accepters : (Token list -> ComposingResult<'a>) list) str tokens =
-    match accepters with
+/// Takes a list of acceptors and tried to match in that order. The first success is returned.
+/// If no match could be made, Multiple Failure is returned with each error message.
+let rec private either (acceptors : (Token list -> ComposingResult<'a>) list) str tokens =
+    match acceptors with
     | head::tail -> 
         match head tokens with
         | Success (toks, ret) -> Success (toks, ret)
@@ -341,14 +372,12 @@ and identifier tokens =
     | (Identifier str)::tail -> Success (tail, str)
     | _ -> Failure (Linear (tokens, "identifier", End))
 
-and namespacePrefix tokens =
+and namespacePrefix tokens : ComposingResult<Namespace> =
     let rec buildNamespaceRev strList =
         match strList with
         | [] -> Global
         | head::tail -> Child ((buildNamespaceRev tail), head)
 
-    let buildNamespace strList =
-        buildNamespaceRev (strList |> List.rev)
     let namespaceAndDot toks =
         prepare toks |>
         take identifier |>
@@ -356,8 +385,12 @@ and namespacePrefix tokens =
         collectTo id "namespace and dot"
 
     prepare tokens |>
+    // this is done to take at least one
+    take namespaceAndDot |>
     take (many namespaceAndDot) |>
-    collectTo buildNamespace "namespace prefix"
+    collectTo2 (
+        fun (first, last) -> buildNamespaceRev ((last |> List.rev)@[first])
+    ) "namespace prefix"
 
 and ``namespace`` tokens =
     let rec buildNamespaceRev strList =
@@ -404,8 +437,7 @@ and knownAssignment tokens =
 and codeBlock tokens =
     prepare tokens |>
     skip (token (Separator CurvedBracketOpen)) |>
-    take (many statement) |>
-    skip (token (Separator CurvedBracketClose)) |>
+    take (statement |> until (token (Separator CurvedBracketClose))) |>
     collectTo id "code block"
 
 and newAssignment tokens =
@@ -458,8 +490,7 @@ and classDefinition tokens =
     skip (token (Keyword Class)) |>
     take identifier |>
     skip (token (Separator CurvedBracketOpen)) |>
-    take (many classMember) |>
-    skip (token (Separator CurvedBracketClose)) |>
+    take (classMember |> until (token (Separator CurvedBracketClose))) |>
     collectTo2 (fun (name, members) -> 
             UnresolvedTopLevelEntry.Class {
                 Name = name
