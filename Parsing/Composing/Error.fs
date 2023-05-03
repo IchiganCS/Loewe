@@ -1,14 +1,62 @@
 namespace Loewe.Parsing.Composing.Error
-open Loewe.Parsing.Composing.Types
 open Loewe.Parsing.Tokenizing
 
-type ErrorCause = CodeParts
+type ErrorCause =
+    | Separator of Token
+    | Statement
+    | WhileStatement
+    | IfStatement
+    | ReturnStatement
+    | ClassDefinition
+    | MemberDefinition
+    | MethodDefinition
+    | AttributeDefinition
+    | AccessModifier
+    | FunctionDefinition
+    | TopLevelSymbol
+    | OpenNamespace
+    | File
+    | NamespaceDeclaration
+    | Expression
+    | CodeBlock
+    | StatementedExpression
+    | BracketedExpression
+    | KnownAssignment
+    | NewAssignment
+    | Keyword
+    | Identifier
+    | QualifiedIdentifier
+    | Literal
+    | LiteralExpression
+    | UnaryOperator
+    | BinaryOperator
+    | BinaryOperation
+    | ExpandedExpression
+    | UnaryOperation
+    | Namespace
+    | NamespaceAndDot
+    | NamespacePrefix
+    | MethodCall
+    | FunctionCall
+    | Attribute
+    | CommadParameterList
+    | LastTypedParameter
+    | EmptyParameterList
+    | FilledTypedParameterList
+    | SomeTypedParameter
+    | ParameterList
+    | LastArgument
+    | SomeArgument
+    | FilledArgumentList
+    | EmptyArgumentList
+    | ArgumentList
+    | Variable
 
 /// A type for specifying a parsing error. The list of tokens starts with the tokens responsible for the error.
 type ErrorTrace = 
     | End
     | Linear of Token list * ErrorCause * ErrorTrace
-    | Multiple of ErrorTrace Set
+    | Multiple of Token list * ErrorCause * ErrorTrace Set
 
     
 
@@ -20,7 +68,7 @@ module Error =
             function
             | End -> []
             | Linear (ls, _, _) -> ls
-            | Multiple set -> longestTokenList (set |> Set.toList)
+            | Multiple (ls, _, _) -> ls
             )
         |> List.maxBy List.length
 
@@ -32,45 +80,48 @@ module Error =
             | End -> ""
             | Linear (_, cause, et) -> 
                 "\n".PadRight(pad * depth) + (string cause) + (format depth et)
-            | Multiple set ->
-                set
-                |> Set.fold (fun x y -> x + (format (depth + 1) y)) "\n"
+            | Multiple (_, cause, set) ->
+                "\n".PadRight(pad * depth) + (string cause) + 
+                    (set
+                    |> Set.fold (fun x y -> x + (format (depth + 1) y)) "\n")
 
         format 0 errorTrace
 
-    // /// Returns a trace to the path with least tokens (e.g. the path that could do most work)
-    // let deepestError error =
+    /// Returns a trace to the path with least tokens (e.g. the path that could do most work). This trace is always linear. 
+    /// If there are multiple traces which achieve the same count of tokens, the error before those different traces is taken
+    /// and then ended, since this the actual cause for the error.
+    let deepest error =
 
-    //     // takes an error trace and returns a linear (as good as possible) trace with the least tokens
-    //     // in its paths. The second element is the length of the token
-    //     let rec helper =
-    //         function
-    //         | End -> End, 0 // should not be reached
-    //         | Linear (toks, str, next) -> 
-    //             match next with
-    //             | End -> Linear (toks, str, End), (toks |> List.length)
-    //             | _ ->
-    //                 let (err, len) = helper next
-    //                 Linear (toks, str, err), len
+        // takes an error trace and returns a linear trace with the least tokens
+        // in its paths. The second element is the length of the token.
+        let rec helper =
+            function
+            | End -> End, 0
+            | Linear (toks, cause, next) -> 
+                let (trace, length) = helper next
+                if length = 0 then
+                    Linear (toks, cause, trace), toks |> List.length
+                else
+                    Linear (toks, cause, trace), length
 
-    //         | Multiple set ->
-    //             let minTraces, len = 
-    //                 set |>
-    //                 Set.toList |>
-    //                 List.minBy (fun error -> snd (helper error)) |>
-    //                 fun minError -> 
-    //                     List.filter (fun error -> snd (helper error) = snd (helper minError)) (Set.toList set), snd (helper minError)                
-    
-    //             let cleanedTraces =
-    //                 minTraces |>
-    //                 Set.ofList |>
-    //                 Set.map (fun err -> fst (helper err))
+            | Multiple (toks, cause, set) ->
+                let traces = set |> Set.toList
+                let cleanedTraces = 
+                    traces 
+                    |> List.map helper
+                    |> List.filter (fun x -> snd x <> 0)
+                let minLength = cleanedTraces |> List.minBy snd |> snd
 
-    //             let maxTokens = longestTokenList (set |> Set.toList)
-                
-    //             if Set.count cleanedTraces = 1 then
-    //                 Linear (maxTokens, str, cleanedTraces.MaximumElement), len
-    //             else
-    //                 Multiple cleanedTraces, len
+                let minTraces = 
+                    cleanedTraces 
+                    |> List.filter (fun x -> snd x = minLength)
+                    |> List.map fst
 
-    //     fst (helper error)
+                if minTraces |> List.length = 1 then
+                    Linear (toks, cause, minTraces |> List.head), minLength
+                else
+                    // if there are multiple traces with the same minimal length, we don't care about their differences. 
+                    // the cause given in this last error is the actual problem.
+                    Linear (toks, cause, End), minLength
+
+        fst (helper error)

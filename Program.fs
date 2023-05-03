@@ -50,4 +50,5 @@ let testProgram = buildTestTokens "
     
 match composeFile testProgram with
 | ComposingFileResult.Success members -> ()
-| ComposingFileResult.Failure cet -> ()
+| ComposingFileResult.Failure cet -> 
+    printfn "%s" (cet |> Error.deepest |> Error.string)

@@ -57,8 +57,8 @@ let private token single tokens : Result<Token> =
         if head = single then 
             Success (tail, single) 
         else 
-            Failure (Linear (tokens, (CodeParts.Separator single), End))
-    | [] -> Failure (Linear (tokens, (CodeParts.Separator single), End))
+            Failure (Linear (tokens, (ErrorCause.Separator single), End))
+    | [] -> Failure (Linear (tokens, (ErrorCause.Separator single), End))
 
 /// Wraps a value into a composing result
 let private insert (value : 'a) tokens : Result<'a> =
@@ -80,15 +80,15 @@ let private take (acceptor : Token list -> Result<'b>) (previousResult : Result<
 /// the end acceptor is tried. If succeded, the list of matches of previous matches is returned.
 /// If the end acceptor fails, the method fails and returns the failures of both, 
 /// the recurring and end acceptor in that order.
-let rec private until endAcceptor recurringAcceptor tokens =
+let rec private until errorCause endAcceptor recurringAcceptor tokens =
     match recurringAcceptor tokens with
     | Failure cet -> 
         match endAcceptor tokens with
         | Success (tokens, _) -> Success (tokens, [])
-        | Failure cet2 -> Failure (Multiple ([cet; cet2] |> Set.ofList))
+        | Failure cet2 -> Failure (Multiple (tokens, errorCause, [cet; cet2] |> Set.ofList))
          
     | Success (tokens, value) ->    
-        match until endAcceptor recurringAcceptor tokens with
+        match until errorCause endAcceptor recurringAcceptor tokens with
         | Success (tokens, list) -> Success (tokens, value::list)
         | Failure cet -> Failure cet
 
@@ -108,20 +108,20 @@ let private prepare tokens =
 
 /// Takes a list of acceptors and tried to match in that order. The first success is returned.
 /// If no match could be made, Multiple Failure is returned with each error message.
-let rec private either (acceptors : (Token list -> Result<'a>) list) tokens =
+let rec private any errorCause (acceptors : (Token list -> Result<'a>) list) tokens =
     match acceptors with
     | head::tail -> 
         match head tokens with
         | Success (toks, ret) -> Success (toks, ret)
         | Failure error -> 
-            match either tail tokens with
+            match any errorCause tail tokens with
             | Success (toks, ret) -> Success (toks, ret)
             | Failure otherErrors -> 
                 match otherErrors with
-                | Multiple rr ->
-                    Failure (Multiple (rr |> Set.add error))
+                | Multiple (tokens, errorCause, rr) ->
+                    Failure (Multiple (tokens, errorCause, rr |> Set.add error))
                 | _ -> raise (System.Exception "either didn't return correct failure type")
-    | _ -> Failure (Multiple Set.empty)
+    | _ -> Failure (Multiple (tokens, errorCause, Set.empty))
 
 
 let private operationChain (leftExpr, binOp, rightExpr) : Expression =
@@ -181,6 +181,10 @@ let collectTo5 tokens errorCause builderFn childResult =
     | Success (toks, (((((_, val1), val2), val3), val4), val5)) -> Success (toks, builderFn (val1, val2, val3, val4, val5))
     | Failure error -> Failure (Linear (tokens, errorCause, error))
 
+let clean result =
+    match result with
+    | Success (toks, (_, val1)) -> Success (toks, val1)
+    | Failure error -> Failure error
 
 
 let binaryOperationToken tokens =
@@ -240,24 +244,24 @@ let rec expression tokens =
                 // here we try to build new expressions
                 // in this way, expressions are recursively built right to left (<- this is important!)
                 prepare rest |>
-                take (either [
+                take (any ExpandedExpression [
                     (methodCall expr)
                     (attribute expr)
                     (binaryOperation expr)]) |>
-                collectTo1 rest ExpandedExpression id with
+                clean with
             | Success (a, b) -> tryExpand (Success (a, b))
             | Failure _ -> result
 
     // try those which don't start with expressions
     tryExpand (
         prepare tokens |>
-        take (either [
-        literalExpression
-        bracketedExpression
-        unaryOperation
-        functionCall
-        variable]) |>
-        collectTo1 tokens CodeParts.Expression id)
+        take (any ErrorCause.Expression [
+            literalExpression
+            bracketedExpression
+            unaryOperation
+            functionCall
+            variable]) |>
+        clean)
 
 and typedParameterList tokens =
     let rec commadTypedParameters tokens =
@@ -287,14 +291,14 @@ and typedParameterList tokens =
 
     prepare tokens |>
     skip (token (Separator BracketOpen)) |>
-    take (either [emptyParameterList; someTypeParameter]) |>
-    collectTo1 tokens FilledTypedParameterList id
+    take (any FilledTypedParameterList [emptyParameterList; someTypeParameter]) |>
+    clean
 
 
 and literal tokens =
     match tokens with
     | (Literal l)::tail -> Success (tail, l)
-    | _ -> Failure (Linear (tokens, CodeParts.Literal, End))
+    | _ -> Failure (Linear (tokens, ErrorCause.Literal, End))
 
 and literalExpression tokens =
     prepare tokens |>
@@ -307,7 +311,7 @@ and binaryOperation expr tokens =
     take (insert expr) |>
     take binaryOperationToken |>
     take expression |>
-    collectTo3 tokens CodeParts.BinaryOperation operationChain
+    collectTo3 tokens ErrorCause.BinaryOperation operationChain
 
 and methodCall expr tokens =
     prepare tokens |>
@@ -315,13 +319,13 @@ and methodCall expr tokens =
     skip (token (Separator Dot)) |>
     take identifier |>
     take parameterList |>
-    collectTo3 tokens CodeParts.MethodCall Expression.MethodCall
+    collectTo3 tokens ErrorCause.MethodCall Expression.MethodCall
 
 and functionCall tokens =
     prepare tokens |>
     take qualifiedIdentifier |>
     take parameterList |>
-    collectTo2 tokens CodeParts.FunctionCall Expression.FunctionCall
+    collectTo2 tokens ErrorCause.FunctionCall Expression.FunctionCall
 
 and parameterList tokens =
     let rec someArgument tokens =
@@ -349,26 +353,26 @@ and parameterList tokens =
 
     prepare tokens |>
     skip (token (Separator BracketOpen)) |>
-    take (either [emptyArgumentList; filledArgumentList]) |>
-    collectTo1 tokens ArgumentList id
+    take (any ArgumentList [emptyArgumentList; filledArgumentList]) |>
+    clean
 
 and unaryOperation tokens =
     prepare tokens |>
     take unaryOperationToken |>
     take expression |>
-    collectTo2 tokens CodeParts.UnaryOperation Expression.UnaryOperation
+    collectTo2 tokens ErrorCause.UnaryOperation Expression.UnaryOperation
 
 and variable tokens =
     prepare tokens |>
     take qualifiedIdentifier |>
-    collectTo1 tokens CodeParts.Variable Expression.Variable
+    collectTo1 tokens ErrorCause.Variable Expression.Variable
 
 and attribute expr tokens =
     prepare tokens |>
     take (insert expr) |>
     skip (token (Separator Dot)) |>
     take identifier |>
-    collectTo2 tokens CodeParts.Attribute Expression.Attribute
+    collectTo2 tokens ErrorCause.Attribute Expression.Attribute
 
 and qualifiedIdentifier tokens : Result<QualifiedIdentifier> =
     // This method is a little hacky. It simply reads a namespace and cuts the last namespace off
@@ -377,12 +381,12 @@ and qualifiedIdentifier tokens : Result<QualifiedIdentifier> =
     prepare tokens |>
     take (optional namespacePrefix) |>
     take identifier |>
-    collectTo2 tokens CodeParts.QualifiedIdentifier (fun (nsp, id) -> id, nsp)
+    collectTo2 tokens ErrorCause.QualifiedIdentifier (fun (nsp, id) -> id, nsp)
 
 and identifier tokens =
     match tokens with
     | (Identifier str)::tail -> Success (tail, str)
-    | _ -> Failure (Linear (tokens, CodeParts.Identifier, End))
+    | _ -> Failure (Linear (tokens, ErrorCause.Identifier, End))
 
 /// If no prefix is given, the method fails. Global is only returned on a specific match.
 and namespacePrefix tokens =
@@ -403,7 +407,7 @@ and namespacePrefix tokens =
     
     prepare tokens |>
     take (oneOrMore namespaceAndDot) |>
-    collectTo1 tokens CodeParts.Namespace (fun strList -> buildNamespace strList)
+    collectTo1 tokens ErrorCause.Namespace (fun strList -> buildNamespace strList)
 
 and ``namespace`` tokens =
     let rec buildNamespaceRev strList =
@@ -423,7 +427,7 @@ and ``namespace`` tokens =
     prepare tokens |>
     take (many namespaceAndDot) |>
     take identifier |>
-    collectTo2 tokens CodeParts.Namespace (fun (strList, last) -> Child ((buildNamespace strList), last))
+    collectTo2 tokens ErrorCause.Namespace (fun (strList, last) -> Child ((buildNamespace strList), last))
 
 
 and bracketedExpression tokens =
@@ -445,13 +449,13 @@ and knownAssignment tokens =
     skip (token (Separator Assignment)) |>
     take expression |>
     skip (token (Separator Semicolon)) |>
-    collectTo2 tokens CodeParts.KnownAssignment Statement.KnownAssignment
+    collectTo2 tokens ErrorCause.KnownAssignment Statement.KnownAssignment
 
 and codeBlock tokens =
     prepare tokens |>
     skip (token (Separator CurvedBracketOpen)) |>
-    take (statement |> until (token (Separator CurvedBracketClose))) |>
-    collectTo1 tokens CodeBlock id
+    take (statement |> until CodeBlock (token (Separator CurvedBracketClose))) |>
+    clean
 
 and newAssignment tokens =
     prepare tokens |>
@@ -460,19 +464,19 @@ and newAssignment tokens =
     skip (token (Separator Assignment)) |>
     take expression |>
     skip (token (Separator Semicolon)) |>
-    collectTo3 tokens CodeParts.NewAssignment Statement.NewAssignment
+    collectTo3 tokens ErrorCause.NewAssignment Statement.NewAssignment
 
      
 and statement tokens =
     prepare tokens |>
-    take (either [
+    take (any ErrorCause.Statement [
         knownAssignment;
         newAssignment;
         ``return``;
         ``if``;
         ``while``;
         statementExpression;]) |>
-    collectTo1 tokens CodeParts.Statement id
+    clean
 
 and ``while`` tokens =
     prepare tokens |>
@@ -504,7 +508,7 @@ and classDefinition tokens =
     skip (token (Keyword Class)) |>
     take identifier |>
     skip (token (Separator CurvedBracketOpen)) |>
-    take (classMember |> until (token (Separator CurvedBracketClose))) |>
+    take (classMember |> until ClassDefinition (token (Separator CurvedBracketClose))) |>
     collectTo2 tokens ClassDefinition (fun (name, members) -> 
             TopLevelEntry.Class {
                 Name = name
@@ -514,11 +518,11 @@ and classDefinition tokens =
 
 and classMember tokens =
     prepare tokens |>
-    take (either [
+    take (any MemberDefinition [
         methodDefinition;
         attributeDefinition;
     ]) |>
-    collectTo1 tokens MemberDefinition id
+    clean
 
 and methodDefinition tokens =
     prepare tokens |>
@@ -565,8 +569,8 @@ and functionDefinition  tokens =
 
 and ``topLevelSymbol`` tokens =
     prepare tokens |>
-    take (either [classDefinition; functionDefinition]) |>
-    collectTo1 tokens TopLevelSymbol id
+    take (any TopLevelSymbol [classDefinition; functionDefinition]) |>
+    clean
 
 and namespaceDeclaration tokens =
     prepare tokens |>
@@ -597,5 +601,5 @@ and accessModifier tokens =
         match k with
         | Keyword.Public -> Success (tail, AccessModifier.Public)
         | Keyword.Private -> Success (tail, AccessModifier.Private)
-        | _ -> Failure (Linear (tokens, CodeParts.AccessModifier, End))
-    | _ -> Failure (Linear (tokens, CodeParts.AccessModifier, End))
+        | _ -> Failure (Linear (tokens, ErrorCause.AccessModifier, End))
+    | _ -> Failure (Linear (tokens, ErrorCause.AccessModifier, End))
