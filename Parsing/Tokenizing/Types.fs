@@ -1,5 +1,8 @@
-module Loewe.Parsing.Tokenizing.Types
+namespace rec Loewe.Parsing.Tokenizing
+
+
 open Loewe.Parsing.Types
+
 
 
 
@@ -17,22 +20,6 @@ type Keyword =
     | ElseIf
     | Class
 
-let keywords = 
-    Map [
-        Public, "public"
-        Private, "private"
-        Const, "const"
-        While, "while"
-        For, "for"
-        Return, "return"
-        If, "if"
-        ElseIf, "elif"
-        Else, "else"
-        Open, "open"
-        Namespace, "namespace"
-        Class, "class"
-    ]
-
 
 
 
@@ -49,54 +36,26 @@ type Separator =
     | Semicolon
     | Comma
     | Dot
-    | EqualSign
+    | Assignment
     | DoubleDot
-
-
-let separators = 
-    Map [
-        BracketOpen, "("
-        BracketClose, ")"
-        CurvedBracketOpen, "{"
-        CurvedBracketClose, "}"
-        SharpBracketOpen, "["
-        SharpBracketClose, "]"
-        Semicolon, ";"
-        Comma, ","
-        Dot, "."
-        EqualSign, "="
-        DoubleDot, ":"
-    ]
 
 
 
 
 type Operator =
-    | Equal
-    | EqualNot
-    | Not
-    | And
-    | Or
+    | EqualSign
+    | NotEqualSign
+    | NotSign
+    | TildeSign
+    | AndSign
+    | OrSign
     | Plus
     | Minus
     | Star
     | Divide
     | Percent
-
-let operators =
-    Map [
-        Percent, "%"
-        Equal, "=="
-        EqualNot, "!="
-        Not, "!"
-        And, "&&"
-        Or, "||"
-        Plus, "+"
-        Minus, "-"
-        Star, "*"
-        Divide, "/"
-    ]
-
+    | DoubleAnd
+    | DoubleOr
 
 
 
@@ -119,10 +78,10 @@ type Token =
     | Literal of Literal
     override this.ToString() =
         match this with
-        | Keyword keyword -> keywords[keyword]
+        | Keyword keyword -> Mappings.keywords[keyword]
         | Identifier id -> id
-        | Separator separator -> separators[separator]
-        | Operator op -> operators[op]
+        | Separator separator -> Mappings.separators[separator]
+        | Operator op -> Mappings.operators[op]
         | Literal lit ->
             match lit with
             | Int i -> string i
@@ -138,3 +97,54 @@ type PositionedToken = {
     Token: Token
     Position: Position
 }
+
+
+module Mappings =
+    let keywords : Map<Keyword, string> = 
+        Map [
+            Public, "public"
+            Private, "private"
+            Const, "const"
+            While, "while"
+            For, "for"
+            Return, "return"
+            If, "if"
+            ElseIf, "elif"
+            Else, "else"
+            Open, "open"
+            Namespace, "namespace"
+            Class, "class"
+        ]
+
+    let separators : Map<Separator, string> = 
+        Map [
+            BracketOpen, "("
+            BracketClose, ")"
+            CurvedBracketOpen, "{"
+            CurvedBracketClose, "}"
+            SharpBracketOpen, "["
+            SharpBracketClose, "]"
+            Semicolon, ";"
+            Comma, ","
+            Dot, "."
+            Assignment, "="
+            DoubleDot, ":"
+        ]
+            
+    let operators : Map<Operator, string> =
+        Map [
+            Percent, "%"
+            EqualSign, "=="
+            NotEqualSign, "!="
+            NotSign, "!"
+            AndSign, "&"
+            OrSign, "|"
+            Plus, "+"
+            Minus, "-"
+            Star, "*"
+            Divide, "/"
+            DoubleAnd, "&&"
+            TildeSign, "~"
+            DoubleOr, "||"
+        ]
+

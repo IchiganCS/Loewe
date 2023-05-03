@@ -1,7 +1,7 @@
 module Loewe.Test.Literals
 
 open Loewe.Parsing.Tokenizing.Helpers
-open Loewe.Parsing.Tokenizing.Types
+open Loewe.Parsing.Tokenizing
 open Xunit
 
 

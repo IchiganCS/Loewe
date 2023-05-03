@@ -1,8 +1,7 @@
-module Loewe.Unresolved.General
+module Loewe.Test.Composing.General
 
-open Loewe.Parsing.Tree.Unresolved.Helpers
-open Loewe.Parsing.Tree.Unresolved.Types
-open Loewe.Parsing.Tree.Unresolved.Main
+open Loewe.Parsing.Composing
+open Loewe.Parsing.Composing.Main
 open Loewe.Parsing.Tokenizing.Main
 open Loewe.Parsing.Types
 open Xunit

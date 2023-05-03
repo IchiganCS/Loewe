@@ -18,14 +18,14 @@ int main() // test
 let tokenCountCommentProgram = 16
 
 [<Fact>]
-let ``Most simple test program - lexing`` () =
+let ``Most simple test program`` () =
     Assert.True
         (match tokenize simpleProgram with
         | Success _ -> true
         | Failure _ -> false)
 
 [<Fact>]
-let ``Comment program - lexing`` () =
+let ``Comment program`` () =
     match tokenize commentProgram with
     | Success tokens -> 
         if tokens.Length <> tokenCountCommentProgram then

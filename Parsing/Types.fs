@@ -18,6 +18,13 @@ type TypeQualifier =
     | ConstPtr
 
 
+
+type UnaryOperation =
+    | Not
+    | BitwiseNot
+    | Negate
+
+    
 type BinaryOperation = 
     | Addition
     | Subtraction
@@ -28,24 +35,20 @@ type BinaryOperation =
     | Or
     | Equal
     | NotEqual
+    | BitwiseAnd
+    | BitwiseOr
 
 /// returns the operator with the highest precedence - if equal, binOp1 is returned
 let checkOperatorPrecedence binOp1 binOp2 =
     match binOp1 with
-    | Addition | Subtraction -> 
+    | Multiplication | Division | Modulo
+    | Equal | NotEqual | And | BitwiseAnd -> binOp1
+    | Addition | Subtraction 
+    | Or | BitwiseOr -> 
         match binOp2 with
-        | Addition | Subtraction -> binOp1
+        | Addition | Subtraction
+        | Or | BitwiseOr -> binOp1
         | _ -> binOp2
-    | Multiplication | Division | Modulo -> binOp1
-    | Equal | NotEqual | And -> binOp1
-    | Or -> 
-        match binOp2 with
-        | Or -> binOp1
-        | _ -> binOp2
-
-type UnaryOperation =
-    | Not
-    | Negate
 
 type Position = {
     Line: int

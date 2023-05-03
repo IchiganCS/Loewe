@@ -1,17 +1,16 @@
 ﻿open Loewe.Parsing.Tokenizing.Main
-open Loewe.Parsing.Tokenizing.Types
-open Loewe.Parsing.Tree.Unresolved.Main
-
-open Loewe.Parsing.Tree.Unresolved.Helpers
-open Loewe.Parsing.Tree.Unresolved.Types
-open Loewe.Parsing.Tree.Unresolved.Main
+open Loewe.Parsing.Tokenizing
 open Loewe.Parsing.Tokenizing.Main
 open Loewe.Parsing.Types
+open Loewe.Parsing.Composing.Main
+
+open Loewe.Parsing
+open Loewe.Parsing.Composing.Error
 
 let buildTestTokens str = 
     match tokenize str with
-    | Success posList -> posList |> List.map (fun pt -> pt.Token)
-    | Failure _ -> raise (System.Exception "The test is faulty")
+    | Result.Success posList -> posList |> List.map (fun pt -> pt.Token)
+    | Result.Failure _ -> raise (System.Exception "The test is faulty")
 
 
 
@@ -47,6 +46,8 @@ let testProgram = buildTestTokens "
             sadf.dont();();
         }
     }"
+
+    
 match composeFile testProgram with
 | ComposingFileResult.Success members -> ()
 | ComposingFileResult.Failure cet -> ()

@@ -1,6 +1,6 @@
 module Loewe.Parsing.Tokenizing.Main
 
-open Loewe.Parsing.Tokenizing.Types
+open Loewe.Parsing.Tokenizing
 open Loewe.Parsing.Tokenizing.Helpers
 open Loewe.Parsing.Types
 
@@ -8,7 +8,7 @@ open Loewe.Parsing.Types
 /// if the method can not find a token at the beginning of the string, return None
 /// If no token fits, return Error
 
-type TokenizingResult =
+type Result =
     | Success of PositionedToken list
     | Failure of Position
 
@@ -43,7 +43,7 @@ let tryTokenize (str: string ref) : (Token option * int) option =
 
     None
 
-let tokenize (str: string) : TokenizingResult =
+let tokenize (str: string) : Result =
     let trimmed = ref str
 
     let mutable tokenList = []

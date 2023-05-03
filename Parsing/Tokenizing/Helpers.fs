@@ -1,6 +1,7 @@
 module Loewe.Parsing.Tokenizing.Helpers
 open System.Text.RegularExpressions
-open Loewe.Parsing.Tokenizing.Types
+open Loewe.Parsing.Tokenizing
+open Loewe.Parsing.Tokenizing.Mappings
 
 
 let tryTokenizeComment (strRef: string ref) : int option =
