@@ -8,9 +8,7 @@ open Loewe.Parsing.Types
 /// if the method can not find a token at the beginning of the string, return None
 /// If no token fits, return Error
 
-type Result =
-    | Success of PositionedToken list
-    | Failure of Position
+type TokenizingResult = Result<PositionedToken list, Position>
 
 
 /// Starts at the beginning of the given string and tries to match any kind of token.
@@ -43,7 +41,7 @@ let tryTokenize (str: string ref) : (Token option * int) option =
 
     None
 
-let tokenize (str: string) : Result =
+let tokenize (str: string) =
     let trimmed = ref str
 
     let mutable tokenList = []
@@ -99,10 +97,10 @@ let tokenize (str: string) : Result =
 
     
     if hasError then
-        Failure {
+        Error {
             Line = line
             Coloumn = col
             Length = 0
         }
     else
-        Success tokenList
+        Ok tokenList

@@ -9,8 +9,8 @@ open Loewe.Parsing.Composing.Error
 
 let buildTestTokens str = 
     match tokenize str with
-    | Result.Success posList -> posList |> List.map (fun pt -> pt.Token)
-    | Result.Failure _ -> raise (System.Exception "The test is faulty")
+    | Ok posList -> posList |> List.map (fun pt -> pt.Token)
+    | Error _ -> raise (System.Exception "The test is faulty")
 
 
 
@@ -49,6 +49,6 @@ let testProgram = buildTestTokens "
 
     
 match composeFile testProgram with
-| ComposingFileResult.Success members -> ()
-| ComposingFileResult.Failure cet -> 
+| Ok members -> ()
+| Error cet -> 
     printfn "%s" (cet |> Error.deepest |> Error.string)

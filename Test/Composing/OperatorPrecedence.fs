@@ -9,8 +9,8 @@ open Xunit
 
 let buildTestTokens str = 
     match tokenize str with
-    | Success posList -> posList |> List.map (fun pt -> pt.Token)
-    | Failure _ -> raise (System.Exception "The test is faulty")
+    | Ok posList -> posList |> List.map (fun pt -> pt.Token)
+    | Error _ -> raise (System.Exception "The test is faulty")
 
 
 let private aVar = Expression.Variable ("a", None)
@@ -33,7 +33,7 @@ let toksBinOpPrecedence3 = buildTestTokens "a - b * c / d / e"
 [<Fact>]
 let testBinOpPrecdence1 () =
     match expression toksBinOpPrecedence1 with
-    | Composing.Result.Success ([], expr) -> 
+    | Ok ([], expr) -> 
         Assert.Equal (expr, 
             (minus 
                 (plus (multiply aVar bVar) cVar)
@@ -43,7 +43,7 @@ let testBinOpPrecdence1 () =
 [<Fact>]
 let testBinOpPrecdence2 () =
     match expression toksBinOpPrecedence2 with
-    | Composing.Result.Success ([], expr) -> 
+    | Ok ([], expr) -> 
         Assert.Equal (expr, 
             (plus 
                 (minus
@@ -56,7 +56,7 @@ let testBinOpPrecdence2 () =
 [<Fact>]
 let testBinOpPrecdence3 () =
     match expression toksBinOpPrecedence3 with
-    | Composing.Result.Success ([], expr) -> 
+    | Ok ([], expr) -> 
         Assert.Equal (expr, 
             (minus 
                 aVar

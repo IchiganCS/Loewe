@@ -8,8 +8,8 @@ open Xunit
 
 let buildTestTokens str = 
     match tokenize str with
-    | Success posList -> posList |> List.map (fun pt -> pt.Token)
-    | Failure _ -> raise (System.Exception "The test is faulty")
+    | Ok posList -> posList |> List.map (fun pt -> pt.Token)
+    | Error _ -> raise (System.Exception "The test is faulty")
 
 
 
@@ -42,7 +42,7 @@ asgpih asdg(awef name, sdg aegas) {
 [<Fact>]
 let ``Simple test program`` () =
     match composeFile testProgram with
-    | ComposingFileResult.Success file -> 
+    | Ok file -> 
         let (_, _, members) = file
         Assert.Equal (2, members |> Set.count)
-    | ComposingFileResult.Failure _ -> Assert.True false
+    | Error _ -> Assert.True false

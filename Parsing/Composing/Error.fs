@@ -58,18 +58,19 @@ type ErrorTrace =
     | Linear of Token list * ErrorCause * ErrorTrace
     | Multiple of Token list * ErrorCause * ErrorTrace Set
 
-    
 
 module Error =
-    /// Calcualtes the longest token list given a set of error traces.
+
+
+
+    /// Calculates the longest token list given a set of error traces.
     let rec longestTokenList errorTraces =
         errorTraces
-        |> List.map (
-            function
+        |> List.map
+            (function
             | End -> []
             | Linear (ls, _, _) -> ls
-            | Multiple (ls, _, _) -> ls
-            )
+            | Multiple (ls, _, _) -> ls)
         |> List.maxBy List.length
 
     /// Formats an error trace as a string.
@@ -86,6 +87,9 @@ module Error =
                     |> Set.fold (fun x y -> x + (format (depth + 1) y)) "\n")
 
         format 0 errorTrace
+
+
+
 
     /// Returns a trace to the path with least tokens (e.g. the path that could do most work). This trace is always linear. 
     /// If there are multiple traces which achieve the same count of tokens, the error before those different traces is taken
@@ -110,7 +114,11 @@ module Error =
                     traces 
                     |> List.map helper
                     |> List.filter (fun x -> snd x <> 0)
-                let minLength = cleanedTraces |> List.minBy snd |> snd
+                    
+                let minLength = 
+                    cleanedTraces 
+                    |> List.minBy snd 
+                    |> snd
 
                 let minTraces = 
                     cleanedTraces 

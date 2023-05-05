@@ -14,7 +14,6 @@
     <Compile Include="Parsing/Tree/ResolvedTypes.fs"/>
     <Compile Include="Parsing/Composing/Types.fs"/>
     <Compile Include="Parsing/Composing/Error.fs"/>
-    <Compile Include="Parsing/Composing/Result.fs"/>
     <Compile Include="Parsing/Composing/Helpers.fs"/>
     <Compile Include="Parsing/Composing/Main.fs"/>
     <!-- <Compile Include="Parsing/AST/Types.fs"/>
