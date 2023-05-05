@@ -1,5 +1,5 @@
-namespace Loewe.Parsing.Composing.Error
-open Loewe.Parsing.Tokenizing
+module Loewe.Parser.Composer.Error
+open Loewe.Parser.Lexer.TokenTypes
 
 type ErrorCause =
     | Separator of Token
@@ -60,8 +60,6 @@ type ErrorTrace =
 
 
 module Error =
-
-
 
     /// Calculates the longest token list given a set of error traces.
     let rec longestTokenList errorTraces =

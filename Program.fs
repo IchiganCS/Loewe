@@ -1,14 +1,12 @@
-﻿open Loewe.Parsing.Tokenizing.Main
-open Loewe.Parsing.Tokenizing
-open Loewe.Parsing.Tokenizing.Main
-open Loewe.Parsing.Types
-open Loewe.Parsing.Composing.Main
+﻿open Loewe.Parser.Lexer
+open Loewe.Parser.Types
+open Loewe.Parser.Composer
 
-open Loewe.Parsing
-open Loewe.Parsing.Composing.Error
+open Loewe.Parser
+open Loewe.Parser.Composer.Error
 
 let buildTestTokens str = 
-    match tokenize str with
+    match MultiTokenLexer.fullString str with
     | Ok posList -> posList |> List.map (fun pt -> pt.Token)
     | Error _ -> raise (System.Exception "The test is faulty")
 
@@ -48,7 +46,7 @@ let testProgram = buildTestTokens "
     }"
 
     
-match composeFile testProgram with
+match FileComposer.entireFile testProgram with
 | Ok members -> ()
 | Error cet -> 
     printfn "%s" (cet |> Error.deepest |> Error.string)

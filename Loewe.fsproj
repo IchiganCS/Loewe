@@ -8,14 +8,15 @@
   <ItemGroup>
     <Compile Include="Misc/String.fs"/>
     <Compile Include="Parsing/Types.fs"/>
-    <Compile Include="Parsing/Tokenizing/Types.fs"/>
-    <Compile Include="Parsing/Tokenizing/Helpers.fs"/>
-    <Compile Include="Parsing/Tokenizing/Main.fs"/>
+    <Compile Include="Parsing/Lexer/TokenTypes.fs"/>
+    <Compile Include="Parsing/Lexer/TokenStringMapping.fs"/>
+    <Compile Include="Parsing/Lexer/SingleTokenLexer.fs"/>
+    <Compile Include="Parsing/Lexer/MultiTokenLexer.fs"/>
     <Compile Include="Parsing/Tree/ResolvedTypes.fs"/>
-    <Compile Include="Parsing/Composing/Types.fs"/>
-    <Compile Include="Parsing/Composing/Error.fs"/>
-    <Compile Include="Parsing/Composing/Helpers.fs"/>
-    <Compile Include="Parsing/Composing/Main.fs"/>
+    <Compile Include="Parsing/Composer/ComposerTypes.fs"/>
+    <Compile Include="Parsing/Composer/ComposerError.fs"/>
+    <Compile Include="Parsing/Composer/ConstructComposer.fs"/>
+    <Compile Include="Parsing/Composer/FileComposer.fs"/>
     <!-- <Compile Include="Parsing/AST/Types.fs"/>
     <Compile Include="Parsing/AST/Requirements/Types.fs"/>
     <Compile Include="Parsing/AST/Requirements/Checks.fs"/>

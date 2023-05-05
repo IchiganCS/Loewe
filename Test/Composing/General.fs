@@ -1,19 +1,20 @@
 module Loewe.Test.Composing.General
 
-open Loewe.Parsing.Composing
-open Loewe.Parsing.Composing.Main
-open Loewe.Parsing.Tokenizing.Main
-open Loewe.Parsing.Types
+open Loewe.Parser.Composer
+open Loewe.Parser.Lexer
+open Loewe.Parser.Types
 open Xunit
 
-let buildTestTokens str = 
-    match tokenize str with
+let buildTestTokens str =
+    match MultiTokenLexer.fullString str with
     | Ok posList -> posList |> List.map (fun pt -> pt.Token)
     | Error _ -> raise (System.Exception "The test is faulty")
 
 
 
-let testProgram = buildTestTokens "
+let testProgram =
+    buildTestTokens
+        "
 namespace Test;
 open Test:Asgasg;
 
@@ -41,8 +42,8 @@ asgpih asdg(awef name, sdg aegas) {
 
 [<Fact>]
 let ``Simple test program`` () =
-    match composeFile testProgram with
-    | Ok file -> 
+    match FileComposer.entireFile testProgram with
+    | Ok file ->
         let (_, _, members) = file
         Assert.Equal (2, members |> Set.count)
     | Error _ -> Assert.True false

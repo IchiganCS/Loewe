@@ -1,12 +1,14 @@
 ﻿module Loewe.Test.Lexing
 
-open Loewe.Parsing.Tokenizing.Main
+open Loewe.Parser.Lexer
 
 open Xunit
 
 
 let simpleProgram = "int main() { string x = \"test\"; }"
-let commentProgram = "
+
+let commentProgram =
+    "
 int main() // test
 { //// stop
     // this should work 
@@ -15,20 +17,21 @@ int main() // test
 ;
     int works = \"3\";//3//s
 }"
+
 let tokenCountCommentProgram = 16
 
 [<Fact>]
 let ``Most simple test program`` () =
-    Assert.True
-        (match tokenize simpleProgram with
+    Assert.True (
+        match MultiTokenLexer.fullString simpleProgram with
         | Ok _ -> true
-        | _ -> false)
+        | _ -> false
+    )
 
 [<Fact>]
 let ``Comment program`` () =
-    match tokenize commentProgram with
-    | Ok tokens -> 
+    match MultiTokenLexer.fullString commentProgram with
+    | Ok tokens ->
         if tokens.Length <> tokenCountCommentProgram then
             Assert.True true
-    | _ -> 
-        Assert.True false
+    | _ -> Assert.True false

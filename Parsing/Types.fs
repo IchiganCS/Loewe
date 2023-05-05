@@ -1,4 +1,4 @@
-module Loewe.Parsing.Types
+module Loewe.Parser.Types
 
 type AccessModifier =
     | Public
@@ -24,8 +24,8 @@ type UnaryOperation =
     | BitwiseNot
     | Negate
 
-    
-type BinaryOperation = 
+
+type BinaryOperation =
     | Addition
     | Subtraction
     | Multiplication
@@ -41,17 +41,23 @@ type BinaryOperation =
 /// returns the operator with the highest precedence - if equal, binOp1 is returned
 let checkOperatorPrecedence binOp1 binOp2 =
     match binOp1 with
-    | Multiplication | Division | Modulo
-    | Equal | NotEqual | And | BitwiseAnd -> binOp1
-    | Addition | Subtraction 
-    | Or | BitwiseOr -> 
+    | Multiplication
+    | Division
+    | Modulo
+    | Equal
+    | NotEqual
+    | And
+    | BitwiseAnd -> binOp1
+    | Addition
+    | Subtraction
+    | Or
+    | BitwiseOr ->
         match binOp2 with
-        | Addition | Subtraction
-        | Or | BitwiseOr -> binOp1
+        | Addition
+        | Subtraction
+        | Or
+        | BitwiseOr -> binOp1
         | _ -> binOp2
 
-type Position = {
-    Line: int
-    Coloumn: int
-    Length: int
-}
+type Position =
+    { Line: int; Coloumn: int; Length: int }

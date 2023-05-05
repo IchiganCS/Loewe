@@ -1,9 +1,9 @@
-module Loewe.Parsing.Composing.Helpers
+module Loewe.Parser.Composer.ConstructComposer
 
-open Loewe.Parsing.Composing.Error
-open Loewe.Parsing.Composing.Types
-open Loewe.Parsing.Tokenizing
-open Loewe.Parsing.Types
+open Loewe.Parser.Composer.Error
+open Loewe.Parser.Composer.ComposerTypes
+open Loewe.Parser.Lexer.TokenTypes
+open Loewe.Parser.Types
 
 type private IntermediateResult<'a> = Result<Token list * 'a, ErrorTrace>
 
@@ -571,17 +571,17 @@ and namespaceDeclaration tokens =
     |> skip (token (Separator Semicolon))
     |> collectTo1 tokens NamespaceDeclaration id
 
-and openNamespace tokens =
+and openNamespaceDeclaration tokens =
     prepare tokens
     |> skip (token (Keyword Open))
     |> take ``namespace``
     |> skip (token (Separator Semicolon))
     |> collectTo1 tokens OpenNamespace id
 
-and file tokens : IntermediateResult<FileContent> =
+and fileContent tokens : IntermediateResult<FileContent> =
     prepare tokens
     |> take namespaceDeclaration
-    |> take (many openNamespace)
+    |> take (many openNamespaceDeclaration)
     |> take (all topLevelSymbol)
     |> collectTo3 tokens File (fun (nsp, onsp, tls) -> nsp, onsp |> Set.ofList, tls |> Set.ofList)
 

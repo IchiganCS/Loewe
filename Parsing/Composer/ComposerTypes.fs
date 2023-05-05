@@ -1,7 +1,7 @@
-namespace Loewe.Parsing.Composing.Types
+namespace Loewe.Parser.Composer.ComposerTypes
 
-open Loewe.Parsing.Types
-open Loewe.Parsing.Tokenizing
+open Loewe.Parser.Types
+open Loewe.Parser.Lexer.TokenTypes
 
 
 type QualifiedIdentifier = string * Namespace option
