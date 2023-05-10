@@ -7,17 +7,19 @@
 
   <ItemGroup>
     <Compile Include="Misc/String.fs"/>
-    <Compile Include="Parser/Types.fs"/>
-    <Compile Include="Parser/Lexer/TokenTypes.fs"/>
-    <Compile Include="Parser/Lexer/TokenStringMapping.fs"/>
-    <Compile Include="Parser/Lexer/SingleTokenLexer.fs"/>
-    <Compile Include="Parser/Lexer/MultiTokenLexer.fs"/>
-    <Compile Include="Parser/Composer/ComposerTypes.fs"/>
-    <Compile Include="Parser/Composer/ComposerError.fs"/>
-    <Compile Include="Parser/Composer/ConstructComposer.fs"/>
-    <Compile Include="Parser/Composer/FileComposer.fs"/>
-    <Compile Include="Parser/SymbolTable/SymbolTypes.fs"/>
-    <Compile Include="Parser/SymbolTable/GlobalSymbolTable.fs"/>
+    <Compile Include="Misc/Set.fs"/>
+    <Compile Include="Misc/Result.fs"/>
+    <Compile Include="Parsing/Types.fs"/>
+    <Compile Include="Parsing/Lexer/TokenTypes.fs"/>
+    <Compile Include="Parsing/Lexer/TokenStringMapping.fs"/>
+    <Compile Include="Parsing/Lexer/SingleTokenLexing.fs"/>
+    <Compile Include="Parsing/Lexer/MultiTokenLexing.fs"/>
+    <Compile Include="Parsing/Composition/CompositionTypes.fs"/>
+    <Compile Include="Parsing/Composition/CompositionError.fs"/>
+    <Compile Include="Parsing/Composition/ConstructComposition.fs"/>
+    <Compile Include="Parsing/Composition/FileComposition.fs"/>
+    <Compile Include="Parsing/SymbolTable/SymbolTypes.fs"/>
+    <Compile Include="Parsing/SymbolTable/SymbolTableBuilder.fs"/>
     <Compile Include="Program.fs"/>
   </ItemGroup>
 

@@ -1,8 +1,8 @@
-module Loewe.Parser.Lexer.SingleTokenLexer
+module Loewe.Parsing.Lexer.SingleTokenLexer
 
 open System.Text.RegularExpressions
-open Loewe.Parser.Lexer.TokenStringMapping
-open Loewe.Parser.Lexer.TokenTypes
+open Loewe.Parsing.Lexer.TokenStringMapping
+open Loewe.Parsing.Lexer.TokenTypes
 
 
 let private keywordKeys = keywordMappings.Keys |> Set.ofSeq
@@ -242,23 +242,28 @@ let anyLiteral (strRef: string ref) : (Token * int) option =
 /// If a match could be made, returns the parsed token and the number of chars responsible for the match.
 /// None if no match could be made.
 let any (str: string ref) : (Token option * int) option =
+    // The ordering is very important. Comments should be before operators or "/" will be interpreted as the division sign
     match comment str with
     | Some len -> Some (None, len)
     | None ->
 
+        // keywords need to be before identifiers to not worry about a keyword being identified
+        // as an identifier
         match keyword str with
         | Some (tok, len) -> Some (Some tok, len)
         | None ->
 
+            // literals are important to be in front of identifiers because of "false" and "true"
             match anyLiteral str with
             | Some (tok, len) -> Some (Some tok, len)
             | None ->
 
-                match separator str with
+                // operators should be before separators, especially because of "==" and "="
+                match operator str with
                 | Some (tok, len) -> Some (Some tok, len)
                 | None ->
 
-                    match operator str with
+                    match separator str with
                     | Some (tok, len) -> Some (Some tok, len)
                     | None ->
 

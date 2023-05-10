@@ -8,8 +8,9 @@
   <ItemGroup>
     <Compile Include="Literals.fs" />
     <Compile Include="Lexing.fs" />
-    <Compile Include="Composing/OperatorPrecedence.fs" />
-    <Compile Include="Composing/General.fs" />
+    <Compile Include="Composition/OperatorPrecedence.fs" />
+    <Compile Include="Composition/General.fs" />
+    <Compile Include="SymbolTable/GlobalSymbol.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,9 +1,11 @@
-﻿open Loewe.Parser.Lexer
-open Loewe.Parser.Types
-open Loewe.Parser.Composer
+﻿open Loewe.Parsing.Lexer
+open Loewe.Parsing.Types
+open Loewe.Parsing.Composition
+open Loewe.Parsing.Composition.CompositionError
+open Loewe.Parsing.SymbolTable
 
-open Loewe.Parser
-open Loewe.Parser.Composer.Error
+open Loewe.Parsing
+
 
 let buildTestTokens str = 
     match MultiTokenLexer.fullString str with
@@ -12,41 +14,38 @@ let buildTestTokens str =
 
 
 
-let testProgram = buildTestTokens "
-    namespace Test;
-    open Test:Asgasg;
-    
-    class Holter {
-        public int diPolter;
-    
-        private void dont() {
-            
-        }
+let testProgram = buildTestTokens """
+namespace Test:Test;
 
-        private int s() {
-            return diPolter;
-        }
+class Cs {
+    public int SomeCounter;
+
+    public Cs RecursionTest;
+
+    public Cs getRecursionTest(int newCounter) {
+        setCounter(newCounter);
+        return RecursionTest;
     }
-    
-    asgpih asdg(awef name, sdg aegas) {
-        int x = asd + asdgasd * etst + 124;
-        if (y) {
-            asgun(12512, 346, \"asfasf\");
-            3 + 5;
-            y = 125125;
-            c.s() = 3;
-            x = 3;
-        }
-    
-        while (sadf.diPolter) {
-            Test:Holter sadf = Test:Holter();
-            sadf.diPolter = 4124;
-            sadf.dont();();
-        }
-    }"
+
+    private void setCounter(int newCounter) {
+        SomeCounter = newCounter;
+    }
+}
+
+bool initializeCsWithCounter(int counter) {
+    Test:Test:Cs cs = Cs();
+    cs.RecursionTest = cs;
+    if (cs.getRecursionTest(4) == cs) {
+        return true;
+    }
+    return false;
+}
+"""
 
     
-match FileComposer.entireFile testProgram with
-| Ok members -> ()
+match FileComposition.entireFile testProgram with
+| Ok members -> 
+    let tes = SymbolTableBuilder.fromFile members
+    ()
 | Error cet -> 
     printfn "%s" (cet |> Error.deepest |> Error.string)

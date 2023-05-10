@@ -1,6 +1,6 @@
-module Loewe.Parser.Lexer.TokenTypes
+module Loewe.Parsing.Lexer.TokenTypes
 
-open Loewe.Parser.Types
+open Loewe.Parsing.Types
 
 type Keyword =
     | Const

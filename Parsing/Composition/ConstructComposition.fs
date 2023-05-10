@@ -1,9 +1,9 @@
-module Loewe.Parser.Composer.ConstructComposer
+module Loewe.Parsing.Composition.ConstructComposition
 
-open Loewe.Parser.Composer.Error
-open Loewe.Parser.Composer.ComposerTypes
-open Loewe.Parser.Lexer.TokenTypes
-open Loewe.Parser.Types
+open Loewe.Parsing.Composition.CompositionError
+open Loewe.Parsing.Composition.CompositionTypes
+open Loewe.Parsing.Lexer.TokenTypes
+open Loewe.Parsing.Types
 
 type private IntermediateResult<'a> = Result<Token list * 'a, ErrorTrace>
 
@@ -510,7 +510,7 @@ and classDefinition tokens =
     |> skip (token (Separator CurvedBracketOpen))
     |> take (classMember |> until ClassDefinition (token (Separator CurvedBracketClose)))
     |> collectTo2 tokens ClassDefinition (fun (name, members) ->
-        TopLevelEntry.Class
+        TopLevelEntry.ClassEntry
             { Name = name
               Members = members |> Set.ofList })
 
@@ -553,7 +553,7 @@ and functionDefinition tokens =
     |> take typedParameterList
     |> take codeBlock
     |> collectTo4 tokens FunctionDefinition (fun (qi, i, tpl, cb) ->
-        TopLevelEntry.Function
+        TopLevelEntry.FunctionEntry
             { Name = i
               Return = qi
               Parameters = tpl
@@ -583,7 +583,7 @@ and fileContent tokens : IntermediateResult<FileContent> =
     |> take namespaceDeclaration
     |> take (many openNamespaceDeclaration)
     |> take (all topLevelSymbol)
-    |> collectTo3 tokens File (fun (nsp, onsp, tls) -> nsp, onsp |> Set.ofList, tls |> Set.ofList)
+    |> collectTo3 tokens File (fun (nsp, onsp, tls) -> nsp, onsp |> Set.ofList |> Set.add nsp, tls |> Set.ofList)
 
 and accessModifier tokens =
     match tokens with

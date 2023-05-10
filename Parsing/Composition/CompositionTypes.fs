@@ -1,7 +1,7 @@
-namespace Loewe.Parser.Composer.ComposerTypes
+namespace Loewe.Parsing.Composition.CompositionTypes
 
-open Loewe.Parser.Types
-open Loewe.Parser.Lexer.TokenTypes
+open Loewe.Parsing.Types
+open Loewe.Parsing.Lexer.TokenTypes
 
 
 type QualifiedIdentifier = string * Namespace option
@@ -53,13 +53,13 @@ type ClassMember =
     | Method of Method
     | Attribute of Attribute
 
-type Type = {
+type Class = {
     Name: string
     Members: ClassMember Set
 }
 
 type TopLevelEntry =
-    | Class of Type
-    | Function of Function
+    | ClassEntry of Class
+    | FunctionEntry of Function
 
 type FileContent = Namespace * Namespace Set * TopLevelEntry Set

@@ -1,8 +1,8 @@
 module Loewe.Test.Composing.General
 
-open Loewe.Parser.Composer
-open Loewe.Parser.Lexer
-open Loewe.Parser.Types
+open Loewe.Parsing.Composition
+open Loewe.Parsing.Lexer
+open Loewe.Parsing.Types
 open Xunit
 
 let buildTestTokens str =
@@ -42,7 +42,7 @@ asgpih asdg(awef name, sdg aegas) {
 
 [<Fact>]
 let ``Simple test program`` () =
-    match FileComposer.entireFile testProgram with
+    match FileComposition.entireFile testProgram with
     | Ok file ->
         let (_, _, members) = file
         Assert.Equal (2, members |> Set.count)

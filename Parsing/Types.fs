@@ -1,4 +1,4 @@
-module Loewe.Parser.Types
+module Loewe.Parsing.Types
 
 type AccessModifier =
     | Public

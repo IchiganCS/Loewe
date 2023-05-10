@@ -1,5 +1,5 @@
-module Loewe.Parser.Composer.Error
-open Loewe.Parser.Lexer.TokenTypes
+module Loewe.Parsing.Composition.CompositionError
+open Loewe.Parsing.Lexer.TokenTypes
 
 type ErrorCause =
     | Separator of Token

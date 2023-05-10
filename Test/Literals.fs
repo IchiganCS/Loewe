@@ -1,7 +1,7 @@
 module Loewe.Test.Literals
 
-open Loewe.Parser.Lexer.SingleTokenLexer
-open Loewe.Parser.Lexer.TokenTypes
+open Loewe.Parsing.Lexer.SingleTokenLexer
+open Loewe.Parsing.Lexer.TokenTypes
 open Xunit
 
 

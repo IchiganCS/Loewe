@@ -1,7 +1,7 @@
-module Loewe.Parser.Lexer.MultiTokenLexer
+module Loewe.Parsing.Lexer.MultiTokenLexer
 
-open Loewe.Parser.Lexer.TokenTypes
-open Loewe.Parser.Types
+open Loewe.Parsing.Lexer.TokenTypes
+open Loewe.Parsing.Types
 
 /// Lexes a full string. An error is returned if any part of the string could not be lexed.
 let fullString (str: string) =

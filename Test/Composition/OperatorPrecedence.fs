@@ -1,9 +1,9 @@
 module Loewe.Test.Composing.OperatorPrecedence
 
-open Loewe.Parser.Composer.ConstructComposer
-open Loewe.Parser.Composer.ComposerTypes
-open Loewe.Parser.Lexer
-open Loewe.Parser.Types
+open Loewe.Parsing.Composition.ConstructComposition
+open Loewe.Parsing.Composition.CompositionTypes
+open Loewe.Parsing.Lexer
+open Loewe.Parsing.Types
 open Xunit
 
 let buildTestTokens str =
