@@ -1,5 +1,5 @@
 module Loewe.Parsing.Composition.CompositionError
-open Loewe.Parsing.Lexer.TokenTypes
+open Loewe.Definition.TokenTypes
 
 type ErrorCause =
     | Separator of Token
@@ -50,6 +50,7 @@ type ErrorCause =
     | FilledArgumentList
     | EmptyArgumentList
     | ArgumentList
+    | QualifiedVariable
     | Variable
 
 /// A type for specifying a parsing error. The list of tokens starts with the tokens responsible for the error.

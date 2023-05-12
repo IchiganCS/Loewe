@@ -9,17 +9,21 @@
     <Compile Include="Misc/String.fs"/>
     <Compile Include="Misc/Set.fs"/>
     <Compile Include="Misc/Result.fs"/>
-    <Compile Include="Parsing/Types.fs"/>
-    <Compile Include="Parsing/Lexer/TokenTypes.fs"/>
-    <Compile Include="Parsing/Lexer/TokenStringMapping.fs"/>
+    <Compile Include="Definition/TokenTypes.fs"/>
+    <Compile Include="Definition/Primitives.fs"/>
+    <Compile Include="Definition/Literals.fs"/>
+    <Compile Include="Definition/TokenStringMapping.fs"/>
+    <Compile Include="Definition/CodeConstructs.fs"/>
+    <Compile Include="Definition/Operators.fs"/>
     <Compile Include="Parsing/Lexer/SingleTokenLexing.fs"/>
     <Compile Include="Parsing/Lexer/MultiTokenLexing.fs"/>
     <Compile Include="Parsing/Composition/CompositionTypes.fs"/>
     <Compile Include="Parsing/Composition/CompositionError.fs"/>
     <Compile Include="Parsing/Composition/ConstructComposition.fs"/>
     <Compile Include="Parsing/Composition/FileComposition.fs"/>
-    <Compile Include="Parsing/SymbolTable/SymbolTypes.fs"/>
-    <Compile Include="Parsing/SymbolTable/SymbolTableBuilder.fs"/>
+    <Compile Include="Parsing/SymbolTable/ResolveError.fs"/>
+    <Compile Include="Parsing/SymbolTable/PartialResolve.fs"/>
+    <Compile Include="Parsing/SymbolTable/CodeResolve.fs"/>
     <Compile Include="Program.fs"/>
   </ItemGroup>
 

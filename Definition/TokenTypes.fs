@@ -1,6 +1,4 @@
-module Loewe.Parsing.Lexer.TokenTypes
-
-open Loewe.Parsing.Types
+module Loewe.Definition.TokenTypes
 
 type Keyword =
     | Const
@@ -62,6 +60,3 @@ type Token =
     | Separator of Separator
     | Operator of Operator
     | Literal of Literal
-
-
-type PositionedToken = { Token: Token; Position: Position }

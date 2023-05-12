@@ -1,38 +1,37 @@
 module Loewe.Test.Composing.OperatorPrecedence
 
 open Loewe.Parsing.Composition.ConstructComposition
-open Loewe.Parsing.Composition.CompositionTypes
+open Loewe.Definition.CodeConstructs
 open Loewe.Parsing.Lexer
-open Loewe.Parsing.Types
 open Xunit
 
 let buildTestTokens str =
     match MultiTokenLexer.fullString str with
     | Ok posList -> posList |> List.map (fun pt -> pt.Token)
-    | Error _ -> raise (System.Exception "The test is faulty")
+    | Error _ -> raise (Failure "The test is faulty")
 
 
-let private aVar = Expression.Variable ("a", None)
-let private bVar = Expression.Variable ("b", None)
-let private cVar = Expression.Variable ("c", None)
-let private dVar = Expression.Variable ("d", None)
-let private eVar = Expression.Variable ("e", None)
+let private aVar = Variable (None, "a")
+let private bVar = Variable (None, "b")
+let private cVar = Variable (None, "c")
+let private dVar = Variable (None, "d")
+let private eVar = Variable (None, "e")
 
 
 let private minus expr1 expr2 =
-    Expression.BinaryOperation (expr1, BinaryOperation.Subtraction, expr2)
+    BinaryOperation (expr1, BinaryOperation.Subtraction, expr2)
 
 let private plus expr1 expr2 =
-    Expression.BinaryOperation (expr1, BinaryOperation.Addition, expr2)
+    BinaryOperation (expr1, BinaryOperation.Addition, expr2)
 
 let private divide expr1 expr2 =
-    Expression.BinaryOperation (expr1, BinaryOperation.Division, expr2)
+    BinaryOperation (expr1, BinaryOperation.Division, expr2)
 
 let private multiply expr1 expr2 =
-    Expression.BinaryOperation (expr1, BinaryOperation.Multiplication, expr2)
+    BinaryOperation (expr1, BinaryOperation.Multiplication, expr2)
 
 let private modulo expr1 expr2 =
-    Expression.BinaryOperation (expr1, BinaryOperation.Modulo, expr2)
+    BinaryOperation (expr1, BinaryOperation.Modulo, expr2)
 
 let toksBinOpPrecedence1 = buildTestTokens "a * b + c - d * e"
 let toksBinOpPrecedence2 = buildTestTokens "a % b - c * d + e"

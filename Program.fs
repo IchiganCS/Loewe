@@ -1,5 +1,4 @@
 ﻿open Loewe.Parsing.Lexer
-open Loewe.Parsing.Types
 open Loewe.Parsing.Composition
 open Loewe.Parsing.Composition.CompositionError
 open Loewe.Parsing.SymbolTable
@@ -45,7 +44,7 @@ bool initializeCsWithCounter(int counter) {
     
 match FileComposition.entireFile testProgram with
 | Ok members -> 
-    let tes = SymbolTableBuilder.fromFile members
+    let tes = PartialResolve.fromFile members
     ()
 | Error cet -> 
     printfn "%s" (cet |> Error.deepest |> Error.string)

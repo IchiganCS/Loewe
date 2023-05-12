@@ -2,7 +2,6 @@ module Loewe.Test.Composing.General
 
 open Loewe.Parsing.Composition
 open Loewe.Parsing.Lexer
-open Loewe.Parsing.Types
 open Xunit
 
 let buildTestTokens str =
@@ -45,5 +44,5 @@ let ``Simple test program`` () =
     match FileComposition.entireFile testProgram with
     | Ok file ->
         let (_, _, members) = file
-        Assert.Equal (2, members |> Set.count)
+        Assert.Equal (4, members |> List.length)
     | Error _ -> Assert.True false

@@ -1,7 +1,16 @@
 module Loewe.Parsing.Lexer.MultiTokenLexer
 
-open Loewe.Parsing.Lexer.TokenTypes
-open Loewe.Parsing.Types
+open Loewe.Definition.TokenTypes
+
+type Position = {
+    Line: int
+    Column: int
+    Length: int
+}
+type PositionedToken = {
+    Token: Token
+    Position: Position
+}
 
 /// Lexes a full string. An error is returned if any part of the string could not be lexed.
 let fullString (str: string) =
@@ -38,7 +47,7 @@ let fullString (str: string) =
     let addTokenAtCurrentPosition tok len =
         let position =
             { Line = line
-              Coloumn = col
+              Column = col
               Length = len }
 
         let positionedToken = { Token = tok; Position = position }
@@ -63,7 +72,7 @@ let fullString (str: string) =
     if hasError then
         Error
             { Line = line
-              Coloumn = col
+              Column = col
               Length = 0 }
     else
         Ok tokenList

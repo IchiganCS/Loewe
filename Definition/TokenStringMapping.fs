@@ -1,4 +1,4 @@
-module Loewe.Parsing.Lexer.TokenStringMapping
+module Loewe.Definition.TokenStringMapping
 
 open TokenTypes
 

@@ -1,9 +1,10 @@
 module Loewe.Parsing.Composition.ConstructComposition
 
+open Loewe.Definition.CodeConstructs
 open Loewe.Parsing.Composition.CompositionError
 open Loewe.Parsing.Composition.CompositionTypes
-open Loewe.Parsing.Lexer.TokenTypes
-open Loewe.Parsing.Types
+open Loewe.Definition.TokenTypes
+open Loewe.Definition.Operators
 
 type private IntermediateResult<'a> = Result<Token list * 'a, ErrorTrace>
 
@@ -122,42 +123,6 @@ let rec private any errorCause acceptors tokens =
     | _ -> Error (Multiple (tokens, errorCause, Set.empty))
 
 
-/// Given an existing rightExpr and a binary operation, a new left expression is added to the existing expression,
-/// with respect to all rules of precedence.
-let private buildBinaryOperation (leftExpr, binOp, rightExpr) : Expression =
-    // we need to check operator precedence
-    // The battled term is initially the left part of the lowest binary operation in the right expression
-    // If the operand in that lowest expression has a lower precedence than our given operator, we need to swap precedence and are finished
-    // if the operand has higher precedence we need to recursively check the operator above in the rightExpr tree
-
-    let rec replaceLowestBattledTerm rightExpr : Expression option =
-        match rightExpr with
-        | Expression.BinaryOperation (battled, rop, rrval) ->
-            match replaceLowestBattledTerm battled with
-            | Some expr ->
-                // a term has already been replaced, just carry
-                Some (Expression.BinaryOperation (expr, rop, rrval))
-            | None ->
-                // no term has been replaced, we need to check if now replacing is required
-                if checkOperatorPrecedence binOp rop = binOp then
-                    // binOp should be executed first - build an inner operation with the left expression and the battled term
-                    // and build the previous operation around it
-                    Some (
-                        Expression.BinaryOperation ((Expression.BinaryOperation (leftExpr, binOp, battled)), rop, rrval)
-                    )
-                else
-                    None
-        | _ -> None
-
-    match replaceLowestBattledTerm rightExpr with
-    | Some expr ->
-        // if Some is returned, the left expression is already built int
-        expr
-    | None ->
-        // if None is returned, no replacing was done - thus just build a new operation around it.
-        Expression.BinaryOperation (leftExpr, binOp, rightExpr)
-
-
 let private collectTo1 tokens errorCause builderFn childResult =
     match childResult with
     | Ok (toks, (_, val1)) -> Ok (toks, builderFn val1)
@@ -233,7 +198,7 @@ let unaryOperationToken tokens =
 
 
 
-let rec expression tokens =
+let rec expression tokens  =
     // generally, each part of the code should expand to the maximum it could possibly mean, not just the first occurence
     // usually, this is not a problem, it becomes a problem only for expressions, since some expressions start with expressions.
     // therefore, we need to handle those expressions separately
@@ -256,13 +221,13 @@ let rec expression tokens =
     tryExpand (
         prepare tokens
         |> take (
-            any
-                ErrorCause.Expression
-                [ literalExpression
-                  bracketedExpression
-                  unaryOperation
-                  functionCall
-                  variable ]
+            any ErrorCause.Expression [
+                literalExpression
+                bracketedExpression
+                unaryOperation
+                functionCall
+                variable
+            ]
         )
         |> clean
     )
@@ -364,10 +329,16 @@ and unaryOperation tokens =
     |> take expression
     |> collectTo2 tokens ErrorCause.UnaryOperation Expression.UnaryOperation
 
-and variable tokens =
+and qualifiedVariable tokens =
     prepare tokens
     |> take qualifiedIdentifier
-    |> collectTo1 tokens ErrorCause.Variable Expression.Variable
+    |> take identifier
+    |> collectTo2 tokens ErrorCause.Variable (fun (ident, name) -> Some ident, name)
+
+and variable tokens =
+    prepare tokens
+    |> take identifier
+    |> collectTo1 tokens ErrorCause.Variable (fun str -> Expression.Variable (None, str))
 
 and attribute expr tokens =
     prepare tokens
@@ -456,25 +427,23 @@ and codeBlock tokens =
 
 and newAssignment tokens =
     prepare tokens
-    |> take qualifiedIdentifier
-    |> take identifier
+    |> take qualifiedVariable
     |> skip (token (Separator Assignment))
     |> take expression
     |> skip (token (Separator Semicolon))
-    |> collectTo3 tokens ErrorCause.NewAssignment Statement.NewAssignment
-
+    |> collectTo2 tokens ErrorCause.NewAssignment Statement.NewAssignment
 
 and statement tokens =
     prepare tokens
     |> take (
-        any
-            ErrorCause.Statement
-            [ knownAssignment
-              newAssignment
-              ``return``
-              ``if``
-              ``while``
-              statementExpression ]
+        any ErrorCause.Statement [
+            knownAssignment
+            newAssignment
+            ``return``
+            ``if``
+            ``while``
+            statementExpression
+        ]
     )
     |> clean
 
@@ -509,10 +478,7 @@ and classDefinition tokens =
     |> take identifier
     |> skip (token (Separator CurvedBracketOpen))
     |> take (classMember |> until ClassDefinition (token (Separator CurvedBracketClose)))
-    |> collectTo2 tokens ClassDefinition (fun (name, members) ->
-        TopLevelEntry.ClassEntry
-            { Name = name
-              Members = members |> Set.ofList })
+    |> collectTo2 tokens ClassDefinition (fun (name, members) -> TopLevelEntry.ClassEntry (name, members))
 
 and classMember tokens =
     prepare tokens
@@ -526,13 +492,7 @@ and methodDefinition tokens =
     |> take identifier
     |> take typedParameterList
     |> take codeBlock
-    |> collectTo5 tokens MethodDefinition (fun (am, qi, i, tpl, cb) ->
-        Method
-            { Name = i
-              AccessModifier = am
-              Parameters = tpl
-              Code = cb
-              Return = qi })
+    |> collectTo5 tokens MethodDefinition MethodMember
 
 and attributeDefinition tokens =
     prepare tokens
@@ -540,11 +500,7 @@ and attributeDefinition tokens =
     |> take qualifiedIdentifier
     |> take identifier
     |> skip (token (Separator Semicolon))
-    |> collectTo3 tokens AttributeDefinition (fun (am, qi, i) ->
-        ClassMember.Attribute
-            { Name = i
-              AccessModifier = am
-              Type = qi })
+    |> collectTo3 tokens AttributeDefinition AttributeMember
 
 and functionDefinition tokens =
     prepare tokens
@@ -552,12 +508,7 @@ and functionDefinition tokens =
     |> take identifier
     |> take typedParameterList
     |> take codeBlock
-    |> collectTo4 tokens FunctionDefinition (fun (qi, i, tpl, cb) ->
-        TopLevelEntry.FunctionEntry
-            { Name = i
-              Return = qi
-              Parameters = tpl
-              Code = cb })
+    |> collectTo4 tokens FunctionDefinition FunctionEntry
 
 and ``topLevelSymbol`` tokens =
     prepare tokens
@@ -578,12 +529,6 @@ and openNamespaceDeclaration tokens =
     |> skip (token (Separator Semicolon))
     |> collectTo1 tokens OpenNamespace id
 
-and fileContent tokens : IntermediateResult<FileContent> =
-    prepare tokens
-    |> take namespaceDeclaration
-    |> take (many openNamespaceDeclaration)
-    |> take (all topLevelSymbol)
-    |> collectTo3 tokens File (fun (nsp, onsp, tls) -> nsp, onsp |> Set.ofList |> Set.add nsp, tls |> Set.ofList)
 
 and accessModifier tokens =
     match tokens with
@@ -593,3 +538,10 @@ and accessModifier tokens =
         | Keyword.Private -> Ok (tail, AccessModifier.Private)
         | _ -> Error (Linear (tokens, ErrorCause.AccessModifier, End))
     | _ -> Error (Linear (tokens, ErrorCause.AccessModifier, End))
+
+and fileContent tokens : IntermediateResult<FileContent> =
+    prepare tokens
+    |> take namespaceDeclaration
+    |> take (many openNamespaceDeclaration)
+    |> take (all topLevelSymbol)
+    |> collectTo3 tokens File (fun (nsp, onsp, tls) -> nsp, nsp::onsp, tls)

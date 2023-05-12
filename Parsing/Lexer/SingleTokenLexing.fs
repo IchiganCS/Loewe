@@ -1,8 +1,8 @@
 module Loewe.Parsing.Lexer.SingleTokenLexer
 
 open System.Text.RegularExpressions
-open Loewe.Parsing.Lexer.TokenStringMapping
-open Loewe.Parsing.Lexer.TokenTypes
+open Loewe.Definition.TokenStringMapping
+open Loewe.Definition.TokenTypes
 
 
 let private keywordKeys = keywordMappings.Keys |> Set.ofSeq

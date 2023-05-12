@@ -1,6 +1,7 @@
 module Loewe.Test.SymbolTable
 
-open Loewe.Parsing.SymbolTable
+open Loewe.Definition.CodeConstructs
+open Loewe.Parsing.SymbolTable.PartialResolve
 open Loewe.Parsing.Lexer
 open Loewe.Parsing.Composition
 
@@ -25,6 +26,7 @@ class Cs {
     }
 }
 
+
 bool initializeCsWithCounter(int counter) {
     Test:Test:Cs cs = Cs();
     cs.RecursionTest = cs;
@@ -45,12 +47,12 @@ let ``Global symbol resolution`` () =
     | Error _ -> raise (Failure "faulty test")
     | Ok composedFile ->
 
-    match SymbolTableBuilder.fromFile composedFile with
+    match fromFile composedFile with
     | Error _ -> Assert.True false
     | Ok res -> 
         Assert.Equal ((1, 1, 2, 2),
-            (res |> Set.filter (function | SymbolTypes.ClassSymbol _ -> true | _ -> false) |> Set.count,
-            res |> Set.filter (function | SymbolTypes.FunctionSymbol _ -> true | _ -> false) |> Set.count,
-            res |> Set.filter (function | SymbolTypes.AttributeSymbol _ -> true | _ -> false) |> Set.count,
-            res |> Set.filter (function | SymbolTypes.MethodSymbol _ -> true | _ -> false) |> Set.count)
+            (res |> Set.filter (function | ClassSymbol _ -> true | _ -> false) |> Set.count,
+            res |> Set.filter (function | FunctionSymbol _ -> true | _ -> false) |> Set.count,
+            res |> Set.filter (function | MethodSymbol _ -> true | _ -> false) |> Set.count,
+            res |> Set.filter (function | AttributeSymbol _ -> true | _ -> false) |> Set.count)
         )
