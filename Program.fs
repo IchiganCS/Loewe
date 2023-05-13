@@ -9,7 +9,7 @@ open Loewe.Parsing
 let buildTestTokens str = 
     match MultiTokenLexer.fullString str with
     | Ok posList -> posList |> List.map (fun pt -> pt.Token)
-    | Error _ -> raise (System.Exception "The test is faulty")
+    | Error _ -> failwith "The test is faulty"
 
 
 
@@ -17,25 +17,18 @@ let testProgram = buildTestTokens """
 namespace Test:Test;
 
 class Cs {
-    public int SomeCounter;
-
     public Cs RecursionTest;
 
-    public Cs getRecursionTest(int newCounter) {
-        setCounter(newCounter);
-        return RecursionTest;
-    }
-
-    private void setCounter(int newCounter) {
-        SomeCounter = newCounter;
+    public Cs testMethod(int count) {
+        return this.RecursionTest;
     }
 }
 
 bool initializeCsWithCounter(int counter) {
-    Test:Test:Cs cs = Cs();
+    Test:Test:Cs cs = 3;
     cs.RecursionTest = cs;
-    if (cs.getRecursionTest(4) == cs) {
-        return true;
+    if (cs.RecursionTest == cs) {
+        return cs.testMethod();
     }
     return false;
 }
@@ -44,7 +37,11 @@ bool initializeCsWithCounter(int counter) {
     
 match FileComposition.entireFile testProgram with
 | Ok members -> 
-    let tes = PartialResolve.fromFile members
-    ()
+    match PartialResolve.fromFile members with
+    | Error a -> ()
+    | Ok (symbols, namespaces) ->
+        match CodeResolve.fullResolve symbols namespaces with
+        | Error e -> ()
+        | Ok resolvedSymbols -> ()
 | Error cet -> 
     printfn "%s" (cet |> Error.deepest |> Error.string)

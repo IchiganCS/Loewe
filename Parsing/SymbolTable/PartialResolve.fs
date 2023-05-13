@@ -10,23 +10,20 @@ open ResolveError
 /// for a type name, find matches in the given set. A `Result` type is returned
 /// if there is one match with `Ok`, if there is not one match (multiple or none), `Error` is returned
 /// with a `ResolveError`.
-let resolveType (classDeclarations: Class Set) searchNamespaces typeName : ResolveResult<Type> =
+let resolveType (classDeclarations: Class list) searchNamespaces typeName : ResolveResult<Type> =
     match sourceToPrimitiveMap |> Map.tryFind typeName with
     | Some x -> Ok (PrimitiveType x)
     | None ->
 
         let matches =
             classDeclarations
-            |> Set.filter (fun decl -> Set.contains decl.Namespace searchNamespaces)
-            |> Set.filter (fun decl -> decl.Name = typeName)
-            |> Set.map ClassType
+            |> List.filter (fun decl -> searchNamespaces |> List.contains decl.Namespace && decl.Name = typeName)
+            |> List.map ClassType
 
-        if matches |> Set.count = 1 then
-            matches |> Set.maxElement |> Ok
-        else if matches |> Set.isEmpty then
-            UnknownSymbol (searchNamespaces, typeName) |> Set.singleton |> Error
-        else
-            DuplicateSymbol (searchNamespaces, typeName) |> Set.singleton |> Error
+        match matches with
+        | [one] -> Ok one
+        | [] -> Error [UnknownType (searchNamespaces, typeName)]
+        | _ -> Error [DuplicateSymbol (searchNamespaces, typeName)]
 
 /// Resolves a qualified type. The qualified identifier has a `Option` for `Namespace` attached to it, if it is none, the
 /// `alternativeNamespaces` is used as the search set. It wraps a call to `resolveType`.
@@ -34,9 +31,9 @@ let resolveUnknownIdentifier declarations alternativeNamespaces qi : ResolveResu
     let name, namespaceOption = qi
 
     let namesp =
-        namespaceOption
-        |> Option.map Set.singleton
-        |> Option.defaultValue alternativeNamespaces
+        match namespaceOption with
+        | Some x -> [x]
+        | None -> alternativeNamespaces
 
     resolveType declarations namesp name
 
@@ -102,7 +99,7 @@ let resolveFunction declarations openedNamespaces declaredNamespace ((func, code
             FunctionSymbol (funcSym, codeblock) |> Ok
 
 
-let fromFile content  : ResolveResult<PartialResolvedSymbol Set> =
+let fromFile content  : ResolveResult<PartialResolvedSymbol list * Namespace list> =
     let fileNamespace, openedNamespaces, members = content
 
     let forwardDeclarations =
@@ -110,7 +107,6 @@ let fromFile content  : ResolveResult<PartialResolvedSymbol Set> =
         |> List.choose (function
             | ClassSymbol c -> Some c
             | _ -> None)
-        |> Set.ofList
 
 
     members
@@ -120,4 +116,4 @@ let fromFile content  : ResolveResult<PartialResolvedSymbol Set> =
         | AttributeSymbol a -> resolveAttribute forwardDeclarations openedNamespaces a
         | MethodSymbol (m, c) -> resolveMethod forwardDeclarations openedNamespaces (m, c))
     |> ResolveError.mergeResults
-    |> Result.map Set.ofList
+    |> Result.map (fun members -> members, openedNamespaces)

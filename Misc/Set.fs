@@ -11,5 +11,5 @@ let choose (fn : 'a -> 'b option) (set : 'a Set) : 'b Set =
     |> Set.map (
         function
         | Some x -> x
-        | None -> raise (Failure "will not be raised")
+        | None -> failwith "will not be raised"
     )

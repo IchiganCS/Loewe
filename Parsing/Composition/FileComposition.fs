@@ -58,7 +58,7 @@ let entireFile tokens =
     | Ok (_, (declaredNamespace, openedNamespaces, symbols)) ->
         Ok (
             declaredNamespace,
-            openedNamespaces |> Set.ofList,
+            openedNamespaces,
             symbols |> List.map (buildSymbolsFromEntry declaredNamespace) |> List.concat
         )
     | Error cet -> Error cet

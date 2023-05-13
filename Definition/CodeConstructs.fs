@@ -55,8 +55,6 @@ type Statement<'f, 'a, 'm, 'v> =
     | NewAssignment of 'v * Expression<'f, 'a, 'm, 'v>
     | If of Expression<'f, 'a, 'm, 'v> * Statement<'f, 'a, 'm, 'v> list
     | IfElse of Expression<'f, 'a, 'm, 'v> * Statement<'f, 'a, 'm, 'v> list * Statement<'f, 'a, 'm, 'v> list
-    | IfElifs of (Expression<'f, 'a, 'm, 'v> * Statement<'f, 'a, 'm, 'v> list) list
-    | IfElifElse of (Expression<'f, 'a, 'm, 'v> * Statement<'f, 'a, 'm, 'v> list) list * Statement<'f, 'a, 'm, 'v> list
     | Expression of Expression<'f, 'a, 'm, 'v>
     | While of Expression<'f, 'a, 'm, 'v> * Statement<'f, 'a, 'm, 'v> list
     | Return of Expression<'f, 'a, 'm, 'v>
@@ -106,6 +104,7 @@ type UnresolvedAttribute = Attribute<UnknownIdentifier>
 type PartialResolvedMethod = MethodSignature<Type> * UnresolvedCode
 type PartialResolvedFunction = FunctionSignature<Type> * UnresolvedCode
 
+type ResolvedExpression = Expression<FunctionSignature<Type>, Attribute<Type>, MethodSignature<Type>, Variable<Type>> 
 type ResolvedStatement = Statement<FunctionSignature<Type>, Attribute<Type>, MethodSignature<Type>, Variable<Type>>
 type ResolvedCode = ResolvedStatement list
 

@@ -11,6 +11,7 @@
     <Compile Include="Composition/OperatorPrecedence.fs" />
     <Compile Include="Composition/General.fs" />
     <Compile Include="SymbolTable/GlobalSymbol.fs" />
+    <Compile Include="SymbolTable/CodeResolution.fs" />
   </ItemGroup>
 
   <ItemGroup>

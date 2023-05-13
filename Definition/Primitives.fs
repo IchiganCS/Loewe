@@ -8,9 +8,9 @@ type Primitive =
     | Double64
     | UInt32
     | UInt64
-    | String
     | Char
     | Void
+    | Bool
 
 let sourceToPrimitiveMap =
     Map [
@@ -20,7 +20,6 @@ let sourceToPrimitiveMap =
         "ulong", UInt64
         "float", Float32
         "double", Double64
-        "string", String
         "bool", Char
         "void", Void
     ]

@@ -138,9 +138,9 @@ let stringLiteral (strRef: string ref) : (Token * int) option =
 let boolLiteral (strRef: string ref) : (Token * int) option =
     let str = strRef.Value
 
-    if str.StartsWith "true " || str.StartsWith "true\n" then
+    if str.StartsWith "true" && isSeperatorOrSpace str[4] then
         Some (Literal (Bool true), "true".Length)
-    elif str.StartsWith "false " || str.StartsWith "false\n" then
+    elif str.StartsWith "false" && isSeperatorOrSpace str[5] then
         Some (Literal (Bool false), "false".Length)
     else
         None
