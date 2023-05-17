@@ -20,7 +20,7 @@ let sourceToPrimitiveMap =
         "ulong", UInt64
         "float", Float32
         "double", Double64
-        "bool", Char
+        "bool", Bool
         "void", Void
     ]
 

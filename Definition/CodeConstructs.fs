@@ -12,13 +12,6 @@ type Namespace =
     | Global
     | Child of Namespace * string
 
-type TypeQualifier =
-    | Owner
-    | MutRef
-    | ConstRef
-    | MutPtr
-    | ConstPtr
-
 type UnaryOperation =
     | Not
     | BitwiseNot

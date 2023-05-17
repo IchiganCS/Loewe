@@ -1,0 +1,75 @@
+module LinkedList
+
+use Default.SingleRef
+use Default.Array
+
+class LinkedListNode<T> {
+    Item as public T
+    Next as LinkedListNode<T> OwnedRef Option
+    
+    construct with item {
+        Item = item
+        Next = None
+    }
+
+    construct with item next {
+        Item = item
+        Next = Some (OwnedRef next)
+    }
+
+    copy with target {
+        target.Item = Item
+        target.Next = None
+    }
+}
+
+class LinkedList<T> {
+    Head as LinkedListNode<T>
+    Length as private int
+
+
+    construct with singleItem {
+        Head = LinkedListNode singleItem
+        Length = 1
+    }
+
+    prepend with newItem {
+        Head = LinkedListNode newItem &Head
+        Length++
+    }
+
+    toList as public List {
+        var resultList = List
+        resultList.reserve Length
+
+        for var current = Head, current.Next.Valid, current = current.Next {
+            resultList.append current.Item
+        }
+
+        return resultList
+    }
+}
+
+PngImage image.construct 
+
+
+const class PngImage {
+    BackingImage as private Image
+
+    construct with filePath {
+        var fileReader = FileReadStream filePath
+        var pngDecorder = PngDecoderStream fileReader 
+        BackingImage = pngDecoder.decoded
+    }
+
+    backingImage as public Image ReadRef {
+        return ReadRef &BackingImage
+    }
+
+    save with filePath {
+        var fileWriter = FileWriteStream filePath
+        var pngEncode = PngEncodeStream BackingImage
+        var byteArray = PngEncodeStream.encoded
+        fileWriter.write byteArray
+    }
+}

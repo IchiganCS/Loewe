@@ -47,8 +47,7 @@ let resolveType state searchNamespace typeName : ResolveResult<Type> =
 
         let matches =
             classDeclarations
-            |> List.filter (fun decl -> searchNamespaces |> List.contains decl.Namespace)
-            |> List.filter (fun decl -> decl.Name = typeName)
+            |> List.filter (fun decl -> searchNamespaces |> List.contains decl.Namespace && decl.Name = typeName)
             |> List.map ClassType
 
         match matches with
@@ -143,12 +142,9 @@ let resolveFunctionSymbol state funcSymbol =
 
     let matchingSymbols =
         state.GlobalSymbols
-        |> List.filter (function
-            | FunctionSymbol (f, _) -> f.Name = name && namespaceOption |> Option.forall ((=) f.Namespace)
-            | _ -> false)
-        |> List.map (function
-            | FunctionSymbol (f, _) -> f
-            | _ -> failwith "not be reached")
+        |> List.choose (function
+            | FunctionSymbol (f, _) when f.Name = name && namespaceOption |> Option.forall ((=) f.Namespace) -> Some f
+            | _ -> None)
 
     match matchingSymbols with
     | [ one ] -> Ok one

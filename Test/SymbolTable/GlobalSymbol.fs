@@ -40,15 +40,15 @@ bool initializeCsWithCounter(int counter) {
 [<Fact>]
 let ``Code resolution test`` () =
     match MultiTokenLexer.fullString testProgram with
-    | Error _ -> raise (Failure "faulty test")
+    | Error _ -> failwith "faulty test"
     | Ok tokens ->
 
     match FileComposition.entireFile (tokens |> List.map (fun t -> t.Token)) with
-    | Error _ -> raise (Failure "faulty test")
+    | Error _ -> failwith "faulty test"
     | Ok composedFile ->
 
     match PartialResolve.fromFile composedFile with
-    | Error _ -> raise (Failure "faulty test")
+    | Error _ -> failwith "faulty test"
     | Ok (symbols, namespaces) -> 
 
     match CodeResolve.fullResolve symbols namespaces with
