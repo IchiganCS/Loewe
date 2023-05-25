@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,13 +23,6 @@
     <Compile Include="Parsing/SymbolTable/ResolveError.fs" />
     <Compile Include="Parsing/SymbolTable/PartialResolve.fs" />
     <Compile Include="Parsing/SymbolTable/CodeResolve.fs" />
-    <Compile Include="Generation/SingleGeneration.fs" />
-    <Compile Include="Generation/FullGeneration.fs" />
-    <Compile Include="Program.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="LLVMSharp" Version="5.0.0" />
   </ItemGroup>
 
 </Project>
