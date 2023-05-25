@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <Compile Include="Misc/String.fs" />
-    <Compile Include="Misc/Set.fs" />
     <Compile Include="Misc/Result.fs" />
     <Compile Include="Definition/TokenTypes.fs" />
     <Compile Include="Definition/Primitives.fs" />

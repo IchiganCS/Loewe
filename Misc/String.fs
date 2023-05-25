@@ -17,4 +17,4 @@ let trimStart (str: ReadOnlySpan<char>) : (int * int * int) =
         count <- count + 1
 
 
-    (rows, columns, count)
+    rows, columns, count

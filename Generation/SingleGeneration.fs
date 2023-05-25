@@ -1,8 +1,8 @@
 module Loewe.Generation.SingleGeneration
 
-open LLVMSharp
 open Loewe.Definition.TokenTypes
 open Loewe.Definition.CodeConstructs
+open LLVMSharp
 
 type LLVMBuilderContext = {
     SymbolTable: ResolvedSymbol Set
@@ -12,15 +12,17 @@ type LLVMBuilderContext = {
     NamedValues: Map<string, LLVMValueRef>
 }
 
-let generateLLVMLiteral context literal =
+let generateLLVMLiteral literal =
     match literal with
-    | Float f ->LLVM.ConstReal(LLVM.FloatType(), f)
+    | Float f -> LLVM.ConstReal(LLVM.FloatType(), f)
     | Double d -> LLVM.ConstReal(LLVM.DoubleType(), d)
-    | Int i -> LLVM.ConstInt(LLVM.Int32Type(), uint64 i, LLVMBool(-1)) //todo
-    | Long i -> LLVM.ConstInt(LLVM.Int32Type(), uint64 i, LLVMBool(-1)) //todo
-    | UnsignedInt i -> LLVM.ConstInt(LLVM.Int32Type(), uint64 i, LLVMBool(0)) //todo
-    | UnsignedLong i -> LLVM.ConstInt(LLVM.Int32Type(), i, LLVMBool(0)) //todo
-    | _ -> failwith "not implmemented"
+    | Int i -> LLVM.ConstInt(LLVM.Int32Type(), uint64 i, false)
+    | Long i -> LLVM.ConstInt(LLVM.Int64Type(), uint64 i, false)
+    | UnsignedInt i -> LLVM.ConstInt(LLVM.Int64Type(), uint64 i, false)
+    | UnsignedLong i -> LLVM.ConstInt(LLVM.Int64Type(), uint64 i, false)
+    | Bool true -> LLVM.ConstInt(LLVM.Int1Type(), uint64 -1, false)
+    | Bool false -> LLVM.ConstInt(LLVM.Int1Type(), uint64 0, false)
+    | String s -> LLVM.ConstString(s, s |> String.length |> uint32, false)
     
 
 let rec generateLLVMExpression context expression =
@@ -36,7 +38,7 @@ let rec generateLLVMExpression context expression =
             LLVM.BuildSub(context.Builder, llvmExpr1, llvmExpr2, "subint")
 
         | _ -> failwith "not implmemented"
-    | Literal l -> generateLLVMLiteral context l
+    | Literal l -> generateLLVMLiteral l
     | _ -> failwith "not implmemented"
     
 

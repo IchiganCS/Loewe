@@ -1,11 +1,8 @@
 module LinkedList
 
-use Default.SingleRef
-use Default.Array
-
 class LinkedListNode<T> {
-    Item as public T
-    Next as LinkedListNode<T> OwnedRef Option
+    Item is public T
+    Next is LinkedListNode<T> OwnedRef Option
     
     construct with item {
         Item = item
@@ -17,15 +14,18 @@ class LinkedListNode<T> {
         Next = Some (OwnedRef next)
     }
 
-    copy with target {
-        target.Item = Item
-        target.Next = None
+    copy { //return is the implicit return value
+        return.Item = Item
+        return.Next = None
     }
 }
 
+
+
+
 class LinkedList<T> {
-    Head as LinkedListNode<T>
-    Length as private int
+    private Head is LinkedListNode<T>
+    private Length is int
 
 
     construct with singleItem {
@@ -33,43 +33,44 @@ class LinkedList<T> {
         Length = 1
     }
 
-    prepend with newItem {
+    public prepend with newItem {
         Head = LinkedListNode newItem &Head
         Length++
     }
 
-    toList as public List {
-        var resultList = List
-        resultList.reserve Length
+    public toList returns List {
+        List<T> target = List
+        target.reserve Length
 
-        for var current = Head, current.Next.Valid, current = current.Next {
+        for new current = Head, current.Next.Valid, current = current.Next {
             resultList.append current.Item
         }
 
-        return resultList
+        return target
     }
 }
 
-PngImage image.construct 
+
+
 
 
 const class PngImage {
-    BackingImage as private Image
+    BackingImage is private Image
 
     construct with filePath {
-        var fileReader = FileReadStream filePath
-        var pngDecorder = PngDecoderStream fileReader 
+        new fileReader = FileStreamReader filePath
+        new pngDecorder = PngDecoderStream fileReader 
         BackingImage = pngDecoder.decoded
     }
 
     backingImage as public Image ReadRef {
-        return ReadRef &BackingImage
+        return = ReadRef &BackingImage
     }
 
     save with filePath {
-        var fileWriter = FileWriteStream filePath
-        var pngEncode = PngEncodeStream BackingImage
-        var byteArray = PngEncodeStream.encoded
+        new fileWriter = FileWriteStream filePath
+        new pngEncode = PngEncodeStream BackingImage
+        new byteArray = pngEncode.encoded
         fileWriter.write byteArray
     }
 }

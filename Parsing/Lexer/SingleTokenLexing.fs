@@ -137,11 +137,13 @@ let stringLiteral (strRef: string ref) : (Token * int) option =
 
 let boolLiteral (strRef: string ref) : (Token * int) option =
     let str = strRef.Value
+    let trueStr = "true"
+    let falseStr = "false"
 
-    if str.StartsWith "true" && isSeperatorOrSpace str[4] then
-        Some (Literal (Bool true), "true".Length)
-    elif str.StartsWith "false" && isSeperatorOrSpace str[5] then
-        Some (Literal (Bool false), "false".Length)
+    if str.StartsWith trueStr && isSeperatorOrSpace str[trueStr |> String.length] then
+        Some (Literal (Bool true), trueStr |> String.length)
+    elif str.StartsWith falseStr && isSeperatorOrSpace str[falseStr |> String.length] then
+        Some (Literal (Bool false), falseStr |> String.length)
     else
         None
 
