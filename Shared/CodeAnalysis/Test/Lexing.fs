@@ -1,10 +1,8 @@
-﻿module Loewe.Test.Lexing
-
-open Loewe.Parsing.Lexer
-
+﻿module Loewe.Shared.CodeAnalysis.Test
+open Loewe.Shared.CodeAnalysis.Lexer
+open Loewe.Shared.Utility.StringRef
 open Xunit
-
-
+open IR
 
 let simpleProgram = "int main() { string x = \"test\"; }"
 
@@ -12,7 +10,7 @@ let simpleProgram = "int main() { string x = \"test\"; }"
 [<Fact>]
 let ``Most simple test program`` () =
     Assert.True (
-        match MultiTokenLexer.fullString simpleProgram with
+        match lexString simpleProgram with
         | Ok _ -> true
         | _ -> false
     )
@@ -29,33 +27,85 @@ int main() // test
     int works = \"3\";//3//s
 }"
 
-let tokenCountCommentProgram = 16
+let tokenCountCommentProgram = 24
 
 [<Fact>]
 let ``Comment program`` () =
-    match MultiTokenLexer.fullString commentProgram with
+    match lexString commentProgram with
     | Ok tokens ->
         Assert.True (tokens.Length = tokenCountCommentProgram)
     | _ -> Assert.True false
 
 
 let operatorProgram =
-    "// the numbers indicate the token count
-int main() // 4
-{ // 5
-    int x = \"test\" == \"test\"; // 12
-    int y = 3 + 5 % 2; // 21 
-    int z = 3 == 4; // 28
-    bool a = !false; // 34
-    int b = ~2; // 40
-    int c = !false != !true; // 29
-} //50"
+    "// 1 - the numbers indicate the token count
+int main() // 6
+{ // 8
+    int x = \"test\" == \"test\"; // 16
+    int y = 3 + 5 % 2; // 26
+    int z = 3 == -4; // 34
+    bool a = !false; // 41
+    int b = ~2; // 48
+    int c = !false != !true; // 58
+} //60
+"
 
-let tokenCountoperatorProgram = 50
+let tokenCountoperatorProgram = 60
 
 [<Fact>]
 let ``Operator program`` () =
-    match MultiTokenLexer.fullString operatorProgram with
+    match lexString operatorProgram with
     | Ok tokens ->
         Assert.Equal (tokens |> List.length, tokenCountoperatorProgram)
+    | _ -> Assert.True false
+
+
+
+[<Fact>]
+let ``Simple string literal`` () =
+    match lexStringLiteral ("\"sdg\"" |> StringRef.ofString) with
+    | Some ("sdg", _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Hard string literal`` () =
+    match lexStringLiteral ("\"\\ns\\td\\\"g\\\\\"" |> StringRef.ofString) with
+    | Some ("\ns\td\"g\\", _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Simple int literal`` () =
+    match lexNumberLiteral ("123" |> StringRef.ofString) with
+    | Some (Int 123, _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Hard int literal`` () =
+    match lexNumberLiteral ("-0x123" |> StringRef.ofString) with
+    | Some (Int -0x123, _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Simple double literal`` () =
+    match lexNumberLiteral ("0123.125" |> StringRef.ofString) with
+    | Some (Float 0123.125f, _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Hard float literal`` () =
+    match lexNumberLiteral ("-.125f" |> StringRef.ofString) with
+    | Some (Float (-0.125f), _) -> ()
+    | _ -> Assert.True false
+
+[<Fact>]
+let ``Faulty float literal`` () =
+    match lexNumberLiteral ("-0x125125f" |> StringRef.ofString) with
+    | None -> ()
+    | _ -> Assert.True false
+
+
+[<Fact>]
+let ``Faulty int literal`` () =
+    match lexNumberLiteral ("0x125125s" |> StringRef.ofString) with
+    | None -> ()
     | _ -> Assert.True false

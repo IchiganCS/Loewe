@@ -44,16 +44,6 @@ type Operator =
     | DoubleOr
 
 
-type Literal =
-    | Int of int32
-    | UnsignedInt of uint32
-    | Long of int64
-    | UnsignedLong of uint64
-    | Float of float
-    | Double of double
-    | String of string
-    | Bool of bool
-
 type Token =
     | Keyword of Keyword
     | Identifier of string

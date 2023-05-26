@@ -12,6 +12,7 @@ type Namespace =
     | Global
     | Child of Namespace * string
 
+
 type UnaryOperation =
     | Not
     | BitwiseNot

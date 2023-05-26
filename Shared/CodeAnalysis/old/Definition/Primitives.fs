@@ -1,16 +1,7 @@
 module Loewe.Definition.Primitives
 
 
-type Primitive =
-    | Int32
-    | Int64
-    | Float32
-    | Double64
-    | UInt32
-    | UInt64
-    | Char
-    | Void
-    | Bool
+
 
 let sourceToPrimitiveMap =
     Map [
