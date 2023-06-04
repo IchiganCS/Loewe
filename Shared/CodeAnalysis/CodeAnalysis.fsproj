@@ -7,8 +7,10 @@
     <ProjectReference Include="..\Utility\Utility.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Position.fs" />
     <Compile Include="IR.fs" />
     <Compile Include="Token.fs" />
-    <Compile Include="Lexer.fs" />
+    <Compile Include="Lexing.fs" />
+    <Compile Include="Composition.fs" />
   </ItemGroup>
 </Project>

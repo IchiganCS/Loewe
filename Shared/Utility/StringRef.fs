@@ -68,7 +68,7 @@ module StringRef =
             false
         else
             let mutable i = 0
-            while i < refStr.Length && normalStr[i] = (refStr |> index i) do
+            while i < refStr.Length && refStr |> index i = normalStr[i] do
                 i <- i + 1
 
             i = refStr.Length

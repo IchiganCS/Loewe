@@ -1,22 +1,22 @@
 module LinkedList
 
-class LinkedListNode<T> {
-    Item is public T
-    Next is LinkedListNode<T> OwnedRef Option
+class LinkedListNode<class T> {
+    public Item of T
+    public Next of Option<$LinkedListNode<T>>
     
-    construct with item {
+    construct(item) {
         Item = item
-        Next = None
+        Next = Option:None
     }
 
-    construct with item next {
+    construct(item, &next) {
         Item = item
-        Next = Some (OwnedRef next)
+        Next = Some(next)
     }
 
-    copy { //return is the implicit return value
-        return.Item = Item
-        return.Next = None
+    copy(target) {
+        target.Item = Item
+        target.Next = Option:None
     }
 }
 
@@ -24,26 +24,26 @@ class LinkedListNode<T> {
 
 
 class LinkedList<T> {
-    private Head is LinkedListNode<T>
-    private Length is int
+    private Head of LinkedListNode<T>
+    private Length of int
 
 
-    construct with singleItem {
-        Head = LinkedListNode singleItem
+    public construct(singleItem) {
+        Head = LinkedListNode(singleItem)
         Length = 1
     }
 
-    public prepend with newItem {
+    public prepend(newItem) {
         Head = LinkedListNode newItem &Head
         Length++
     }
 
-    public toList returns List {
-        List<T> target = List
-        target.reserve Length
+    public toList() returns List {
+        new target = List<T>()
+        target.reserve(Length)
 
-        for new current = Head, current.Next.Valid, current = current.Next {
-            resultList.append current.Item
+        for new current = Head; current.Next.Valid; current = current.Next {
+            resultList.append(current.Item)
         }
 
         return target
@@ -55,22 +55,22 @@ class LinkedList<T> {
 
 
 const class PngImage {
-    BackingImage is private Image
+    BackingImage of private Image
 
-    construct with filePath {
-        new fileReader = FileStreamReader filePath
-        new pngDecorder = PngDecoderStream fileReader 
-        BackingImage = pngDecoder.decoded
+    construct(filePath) {
+        new fileReader = FileStreamReader(filePath)
+        new pngDecorder = PngDecoderStream(fileReader) 
+        BackingImage = pngDecoder.decoded()
     }
 
-    backingImage as public Image ReadRef {
-        return = ReadRef &BackingImage
+    public backingImage() {
+        return $BackingImage
     }
 
-    save with filePath {
-        new fileWriter = FileWriteStream filePath
-        new pngEncode = PngEncodeStream BackingImage
-        new byteArray = pngEncode.encoded
-        fileWriter.write byteArray
+    public save(filePath) {
+        new fileWriter = FileWriteStream(filePath)
+        new pngEncode = PngEncodeStream(BackingImage)
+        new byteArray = pngEncode.encoded()
+        fileWriter.write(byteArray)
     }
 }

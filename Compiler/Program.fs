@@ -1,9 +1,9 @@
-﻿open Loewe.Shared.CodeAnalysis.Lexer
+﻿open Loewe.Shared.CodeAnalysis.Lexing
 
 
 let commentProgram =
     "
-int main() // test
+int main$() // test
 { //// stop
     // this should work 
     // emulated multiline comment

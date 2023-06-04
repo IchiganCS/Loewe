@@ -9,7 +9,7 @@ module BiMap =
             if searchValue = possibleMatch then
                 Some resultVal
             else
-                tryFindForward searchValue bimap
+                tryFindForward searchValue tail
         | [] -> None
 
     let rec tryFindBackwards searchValue bimap =
@@ -18,7 +18,7 @@ module BiMap =
             if searchValue = possibleMatch then
                 Some resultVal
             else
-                tryFindBackwards searchValue bimap
+                tryFindBackwards searchValue tail
         | [] -> None
 
     /// Verifies that all values are unique and can be mapped. Returns true if the condition is matched

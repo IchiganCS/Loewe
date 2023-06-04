@@ -1,13 +1,11 @@
-module Loewe.Shared.CodeAnalysis.Lexer
+module Loewe.Shared.CodeAnalysis.Lexing
 
 open Loewe.Shared.Utility.StringRef
 open Token
 open System.Text.RegularExpressions
+open IR
+open Position
 
-
-type Position = { Line: int; Column: int; Length: int }
-
-type PositionedToken = Token * Position
 
 /// Strips string of any whitespaces and comments, but not of newlines
 let private stripBeginning string =
@@ -34,7 +32,7 @@ let private nameRegex =
 let private isSeperatorOrSpace char =
     let str = string char
 
-    if char = ' ' || Tokens.separatorMap |> Map.keys |> Seq.contains str then
+    if char = ' ' || Token.separatorMap |> Map.keys |> Seq.contains str then
         true
     else
         false
@@ -43,7 +41,7 @@ let private isSeperatorOrSpace char =
 
 let lexSeparator string =
     let hits =
-        Tokens.separatorMap
+        separatorMap
         |> Map.filter (fun sep _ -> string |> StringRef.startsWith sep)
 
     if hits |> Map.count = 1 then
@@ -54,7 +52,7 @@ let lexSeparator string =
 
 let lexKeyword string =
     let hits =
-        Tokens.KeywordMap
+        keywordMap
         |> Map.filter (fun sep _ -> string |> StringRef.startsWith sep)
 
     if hits |> Map.count = 1 then
@@ -68,7 +66,7 @@ let lexOperator string =
     // there may be multiple hits, consider ! and !=
     // the longer hit should be selected
     let hits =
-        Tokens.operatorMap
+        operatorMap
         |> Map.filter (fun op _ -> string |> StringRef.startsWith op)
         |> Map.toList
 
@@ -273,8 +271,7 @@ type LexingResult = Result<PositionedToken list, (Position * char) list * Positi
 
 
 
-/// Lexes an entire string. It returns a lot of information useful for backtracing and is error robust.
-let rec lexStringRef string startColumn startLine =
+let rec private lexStringRef fileName string startColumn startLine =
     let cleaned = string |> stripBeginning
 
     if cleaned |> StringRef.empty then
@@ -296,6 +293,7 @@ let rec lexStringRef string startColumn startLine =
             let endLine = if isNewLine then startLine + 1 else startLine
 
             let currentPos = {
+                FileName = fileName
                 Column = startColumn
                 Line = startLine
                 Length = if isNewLine then 1 else endColumn - startColumn
@@ -303,7 +301,7 @@ let rec lexStringRef string startColumn startLine =
 
             let positionedToken = currentPos, currentToken
 
-            match lexStringRef restString endColumn endLine with
+            match lexStringRef fileName restString endColumn endLine with
             | Ok ptList -> Ok (positionedToken :: ptList)
             | Error (errors, ptList) -> Error (errors, positionedToken :: ptList)
 
@@ -318,6 +316,7 @@ let rec lexStringRef string startColumn startLine =
             let endLine = if isNewLine then startLine + 1 else startLine
 
             let currentPos = {
+                FileName = fileName
                 Column = startColumn
                 Line = startLine
                 Length = 1
@@ -325,13 +324,11 @@ let rec lexStringRef string startColumn startLine =
 
             let error = currentPos, skippedChar
 
-            match lexStringRef rest endColumn endLine with
+            match lexStringRef fileName rest endColumn endLine with
             | Ok ptList -> Error ([ error ], ptList)
             | Error (errors, ptList) -> Error (error :: errors, ptList)
 
 
-/// <summary>
-/// <see cref="lexStringRef"/>
-/// </summary>
-let lexString string =
-    lexStringRef (string |> StringRef.ofString) 0 0
+/// Lexes an entire string. It returns a lot of information useful for backtracing and is error robust.
+let lexString fileName string =
+    lexStringRef fileName (string |> StringRef.ofString) 0 0

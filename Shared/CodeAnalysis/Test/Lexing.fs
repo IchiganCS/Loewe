@@ -1,8 +1,10 @@
 ﻿module Loewe.Shared.CodeAnalysis.Test
-open Loewe.Shared.CodeAnalysis.Lexer
+
+open Loewe.Shared.CodeAnalysis.Lexing
 open Loewe.Shared.Utility.StringRef
 open Xunit
 open IR
+open Lexing
 
 let simpleProgram = "int main() { string x = \"test\"; }"
 
@@ -10,7 +12,7 @@ let simpleProgram = "int main() { string x = \"test\"; }"
 [<Fact>]
 let ``Most simple test program`` () =
     Assert.True (
-        match lexString simpleProgram with
+        match lexString "" simpleProgram with
         | Ok _ -> true
         | _ -> false
     )
@@ -27,14 +29,33 @@ int main() // test
     int works = \"3\";//3//s
 }"
 
+let faultyCommentProgram =
+    "
+int ma$in() // notice the faulty dollar sign on the left
+{ //// stop
+    // this should work 
+    // emulated multiline comment
+    int x = \"test\" //  notice spaces here ->    
+;
+    int works = \"3\";//3//s
+}"
+
+
 let tokenCountCommentProgram = 24
 
 [<Fact>]
 let ``Comment program`` () =
-    match lexString commentProgram with
-    | Ok tokens ->
-        Assert.True (tokens.Length = tokenCountCommentProgram)
+    match lexString "" commentProgram with
+    | Ok tokens -> Assert.True (tokens.Length = tokenCountCommentProgram)
     | _ -> Assert.True false
+
+[<Fact>]
+let ``Faulty comment program`` () =
+    match lexString "" faultyCommentProgram with
+    | Ok _ -> Assert.True false
+    | Error (errors, toks) ->
+        Assert.Equal (tokenCountCommentProgram + 1, toks |> List.length)
+        Assert.Equal<(Position * char) list>([ { FileName = ""; Line = 1; Column = 6; Length = 1 }, '$' ], errors)
 
 
 let operatorProgram =
@@ -54,9 +75,8 @@ let tokenCountoperatorProgram = 60
 
 [<Fact>]
 let ``Operator program`` () =
-    match lexString operatorProgram with
-    | Ok tokens ->
-        Assert.Equal (tokens |> List.length, tokenCountoperatorProgram)
+    match lexString "" operatorProgram with
+    | Ok tokens -> Assert.Equal (tokens |> List.length, tokenCountoperatorProgram)
     | _ -> Assert.True false
 
 
