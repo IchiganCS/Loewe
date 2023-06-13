@@ -18,7 +18,7 @@ module StringRef =
             failwith "index out of bounds for string ref"
 
     /// Simply advances the string ref by a fixed amount.
-    /// Can be used as a substring method
+    /// Can be used as a substring method.
     let advance count str =
         if str.Length < count then
             failwith $"cannot advance string ref by {count} - only has length {str.Length}"

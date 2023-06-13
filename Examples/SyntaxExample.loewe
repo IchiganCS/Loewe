@@ -1,76 +1,26 @@
-module LinkedList
+module PngImage
 
-class LinkedListNode<class T> {
-    public Item of T
-    public Next of Option<$LinkedListNode<T>>
-    
-    construct(item) {
-        Item = item
-        Next = Option:None
-    }
-
-    construct(item, &next) {
-        Item = item
-        Next = Some(next)
-    }
-
-    copy(target) {
-        target.Item = Item
-        target.Next = Option:None
-    }
-}
-
-
-
-
-class LinkedList<T> {
-    private Head of LinkedListNode<T>
-    private Length of int
-
-
-    public construct(singleItem) {
-        Head = LinkedListNode(singleItem)
-        Length = 1
-    }
-
-    public prepend(newItem) {
-        Head = LinkedListNode newItem &Head
-        Length++
-    }
-
-    public toList() returns List {
-        new target = List<T>()
-        target.reserve(Length)
-
-        for new current = Head; current.Next.Valid; current = current.Next {
-            resultList.append(current.Item)
-        }
-
-        return target
-    }
-}
-
-
-
-
+use PngEncode
+use PngDecode
+use FileStream
+use Image
 
 const class PngImage {
-    BackingImage of private Image
+    private BackingImage of Image
 
-    construct(filePath) {
+    public construct(filePath) {
         new fileReader = FileStreamReader(filePath)
         new pngDecorder = PngDecoderStream(fileReader) 
-        BackingImage = pngDecoder.decoded()
+        pngDecoder.decode(BackingImage)
     }
 
-    public backingImage() {
+    public const backingImage() {
         return $BackingImage
     }
 
-    public save(filePath) {
+    public save($filePath) {
         new fileWriter = FileWriteStream(filePath)
         new pngEncode = PngEncodeStream(BackingImage)
-        new byteArray = pngEncode.encoded()
-        fileWriter.write(byteArray)
+        pngEncode.encode(fileWriter)
     }
 }

@@ -1,5 +1,7 @@
 module Loewe.Shared.CodeAnalysis.Position
 
+open Token
+
 
 type MultiLinePosition = {
     FileName: string
@@ -9,12 +11,25 @@ type MultiLinePosition = {
     EndColumn: int
 }
 
+
 type Position = {
+    FileName: string
+    Line: int
+    Column: int
+}
+
+type LinePosition = {
     FileName: string
     Line: int
     Column: int
     Length: int
 }
+
+
+
+type PositionedToken = LinePosition * Token
+type WithToken<'a> = 'a * PositionedToken
+type WithTokens<'a> = 'a * PositionedToken list
 
 module Position = 
     let fuse pos1 pos2 =
@@ -41,5 +56,18 @@ module Position =
             EndColumn = greater.Column + greater.Length
         }
 
+    let endOf linePos =
+        {
+            FileName = linePos.FileName
+            Line = linePos.Line
+            Column = linePos.Column + linePos.Length
+        }
+
+    let startOf linePos = 
+        {
+            FileName = linePos.FileName
+            Line = linePos.Line
+            Column = linePos.Column
+        }
 
 

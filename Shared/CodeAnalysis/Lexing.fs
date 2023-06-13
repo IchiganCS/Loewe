@@ -3,7 +3,6 @@ module Loewe.Shared.CodeAnalysis.Lexing
 open Loewe.Shared.Utility.StringRef
 open Token
 open System.Text.RegularExpressions
-open IR
 open Position
 
 
@@ -41,7 +40,7 @@ let private isSeperatorOrSpace char =
 
 let lexSeparator string =
     let hits =
-        separatorMap
+        Token.separatorMap
         |> Map.filter (fun sep _ -> string |> StringRef.startsWith sep)
 
     if hits |> Map.count = 1 then
@@ -52,7 +51,7 @@ let lexSeparator string =
 
 let lexKeyword string =
     let hits =
-        keywordMap
+        Token.keywordMap
         |> Map.filter (fun sep _ -> string |> StringRef.startsWith sep)
 
     if hits |> Map.count = 1 then
@@ -66,7 +65,7 @@ let lexOperator string =
     // there may be multiple hits, consider ! and !=
     // the longer hit should be selected
     let hits =
-        operatorMap
+        Token.operatorMap
         |> Map.filter (fun op _ -> string |> StringRef.startsWith op)
         |> Map.toList
 
@@ -143,18 +142,18 @@ let lexNumberLiteral string =
                 let dottedString = beforeDot + "." + afterDot
 
                 if numberType = "f" || (numberType = "" && dot <> "") then
-                    Some (IR.Float ((float32 signMul) * float32 dottedString), returnString)
+                    Some (Float ((float32 signMul) * float32 dottedString), returnString)
                 elif numberType = "d" then
-                    Some (IR.Double ((double signMul) * double dottedString), returnString)
+                    Some (Double ((double signMul) * double dottedString), returnString)
                 elif numberType = "" then
-                    Some (IR.Int (signMul * System.Convert.ToInt32 (concatString, numberBaseVal)), returnString)
+                    Some (Int (signMul * System.Convert.ToInt32 (concatString, numberBaseVal)), returnString)
                 elif numberType = "u" then
-                    Some (IR.UnsignedInt (System.Convert.ToUInt32 (concatString, numberBaseVal)), returnString)
+                    Some (UnsignedInt (System.Convert.ToUInt32 (concatString, numberBaseVal)), returnString)
                 elif numberType = "ul" then
-                    Some (IR.UnsignedLong (System.Convert.ToUInt64 (concatString, numberBaseVal)), returnString)
+                    Some (UnsignedLong (System.Convert.ToUInt64 (concatString, numberBaseVal)), returnString)
                 elif numberType = "l" then
                     Some (
-                        IR.Long ((int64 signMul) * System.Convert.ToInt64 (concatString, numberBaseVal)),
+                        Long ((int64 signMul) * System.Convert.ToInt64 (concatString, numberBaseVal)),
                         returnString
                     )
                 else
@@ -215,15 +214,15 @@ let lexCharLiteral string =
 
 let lexLiteral string =
     match lexCharLiteral string with
-    | Some (c, str) -> Some (IR.Char c, str)
+    | Some (c, str) -> Some (Char c, str)
     | None ->
 
         match lexStringLiteral string with
-        | Some (st, str) -> Some (IR.String st, str)
+        | Some (st, str) -> Some (String st, str)
         | None ->
 
             match lexBoolLiteral string with
-            | Some (b, str) -> Some (IR.Bool b, str)
+            | Some (b, str) -> Some (Bool b, str)
             | None ->
 
                 match lexNumberLiteral string with
@@ -267,7 +266,7 @@ let lexSingleToken string =
 /// The result for lexing a string to multiple tokens. For success, a list of positioned tokens is returned.
 /// On error, there is an attempt made to continue tokenizing by skipping faulty chars one by one. All of the chars required to be skipped
 /// are stored as well as all other tokens which could be tokenized.
-type LexingResult = Result<PositionedToken list, (Position * char) list * PositionedToken list>
+type LexingResult = Result<PositionedToken list, (LinePosition * char) list * PositionedToken list>
 
 
 

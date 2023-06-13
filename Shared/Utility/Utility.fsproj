@@ -4,6 +4,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="SpikeList.fs" />
+    <Compile Include="ReadRef.fs" />
     <Compile Include="StringRef.fs" />
     <Compile Include="BiMap.fs" />
   </ItemGroup>

@@ -3,8 +3,8 @@
 open Loewe.Shared.CodeAnalysis.Lexing
 open Loewe.Shared.Utility.StringRef
 open Xunit
-open IR
-open Lexing
+open Position
+open Token
 
 let simpleProgram = "int main() { string x = \"test\"; }"
 
@@ -55,7 +55,7 @@ let ``Faulty comment program`` () =
     | Ok _ -> Assert.True false
     | Error (errors, toks) ->
         Assert.Equal (tokenCountCommentProgram + 1, toks |> List.length)
-        Assert.Equal<(Position * char) list>([ { FileName = ""; Line = 1; Column = 6; Length = 1 }, '$' ], errors)
+        Assert.Equal<(LinePosition * char) list>([ { FileName = ""; Line = 1; Column = 6; Length = 1 }, '$' ], errors)
 
 
 let operatorProgram =
